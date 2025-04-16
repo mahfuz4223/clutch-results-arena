@@ -6,12 +6,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Trophy, Upload } from "lucide-react";
 
 const TournamentForm: React.FC = () => {
   const navigate = useNavigate();
   const { createTournament } = useTournament();
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
+  const [logoUrl, setLogoUrl] = useState("");
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -26,7 +28,7 @@ const TournamentForm: React.FC = () => {
     setIsSubmitting(true);
     
     try {
-      const tournament = await createTournament(name, description);
+      const tournament = await createTournament(name, description, logoUrl);
       if (tournament) {
         navigate(`/tournament/${tournament.id}`);
       }
@@ -38,9 +40,30 @@ const TournamentForm: React.FC = () => {
     }
   };
 
+  const handleLogoSelection = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        if (typeof reader.result === 'string') {
+          setLogoUrl(reader.result);
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   return (
     <Card className="w-full max-w-2xl mx-auto">
-      <CardHeader>
+      <CardHeader className="flex flex-col items-center">
+        <div className="flex items-center mb-4">
+          <img 
+            src="/public/lovable-uploads/fe3a6ee4-42e5-4918-94f9-1c5f9793fd70.png" 
+            alt="PUBG Mobile" 
+            className="h-12 mr-2" 
+          />
+          <Trophy className="h-8 w-8 text-primary mr-2" />
+        </div>
         <CardTitle className="text-2xl">Create New Tournament</CardTitle>
       </CardHeader>
       <CardContent>
@@ -71,8 +94,47 @@ const TournamentForm: React.FC = () => {
               rows={4}
             />
           </div>
+
+          <div className="space-y-2">
+            <label htmlFor="logo" className="block text-sm font-medium">
+              Tournament Logo (Optional)
+            </label>
+            <div className="flex items-center space-x-4">
+              <div className="flex-shrink-0">
+                {logoUrl ? (
+                  <div className="w-20 h-20 rounded-md overflow-hidden border border-gray-200">
+                    <img src={logoUrl} alt="Tournament logo" className="w-full h-full object-cover" />
+                  </div>
+                ) : (
+                  <div className="w-20 h-20 rounded-md border border-dashed border-gray-300 flex items-center justify-center bg-gray-50">
+                    <Trophy className="h-8 w-8 text-gray-300" />
+                  </div>
+                )}
+              </div>
+              <div className="flex-grow">
+                <div className="relative">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full"
+                    onClick={() => document.getElementById('logo-upload')?.click()}
+                  >
+                    <Upload className="h-4 w-4 mr-2" />
+                    Upload Logo
+                  </Button>
+                  <input
+                    id="logo-upload"
+                    type="file"
+                    className="hidden"
+                    accept="image/*"
+                    onChange={handleLogoSelection}
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
           
-          <div className="flex justify-end space-x-4">
+          <div className="flex justify-end space-x-4 pt-4">
             <Button
               type="button"
               variant="outline"

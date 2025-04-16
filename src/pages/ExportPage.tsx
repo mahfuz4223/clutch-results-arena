@@ -10,7 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
-import { ChevronLeft } from "lucide-react";
+import { ChevronLeft, Download, Trophy } from "lucide-react";
 import ResultCard from "@/components/export/ResultCard";
 import { getThemeById, THEME_OPTIONS } from "@/utils/themes";
 
@@ -21,6 +21,7 @@ const ExportPage = () => {
   const [selectedMatch, setSelectedMatch] = useState<string | null>(null);
   const [selectedFormat, setSelectedFormat] = useState<"day" | "match">("day");
   const [selectedTheme, setSelectedTheme] = useState(THEME_OPTIONS[0].id);
+  const [logoUrl, setLogoUrl] = useState<string>("");
   
   // Select tournament if not already selected
   React.useEffect(() => {
@@ -28,6 +29,19 @@ const ExportPage = () => {
       selectTournament(id);
     }
   }, [id, currentTournament, selectTournament]);
+
+  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        if (typeof reader.result === 'string') {
+          setLogoUrl(reader.result);
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   if (!currentTournament) {
     return (
@@ -60,7 +74,14 @@ const ExportPage = () => {
                   <ChevronLeft className="h-4 w-4" />
                 </Button>
               </Link>
-              <h1 className="text-3xl font-bold">Export Results</h1>
+              <div className="flex items-center">
+                <img 
+                  src="/public/lovable-uploads/fe3a6ee4-42e5-4918-94f9-1c5f9793fd70.png" 
+                  alt="PUBG Mobile" 
+                  className="h-8 mr-2" 
+                />
+                <h1 className="text-3xl font-bold">Export Results</h1>
+              </div>
             </div>
             <p className="text-gray-500">Export and download {currentTournament.name} results</p>
           </div>
@@ -158,6 +179,54 @@ const ExportPage = () => {
                     </SelectContent>
                   </Select>
                 </div>
+
+                <div className="space-y-3">
+                  <Label>Custom Tournament Logo</Label>
+                  <div className="flex items-center space-x-4">
+                    <div className="flex-shrink-0">
+                      {logoUrl ? (
+                        <div className="w-16 h-16 rounded-md overflow-hidden border border-gray-200">
+                          <img src={logoUrl} alt="Tournament logo" className="w-full h-full object-cover" />
+                        </div>
+                      ) : (
+                        <div className="w-16 h-16 rounded-md border border-dashed border-gray-300 flex items-center justify-center bg-gray-50">
+                          <Trophy className="h-6 w-6 text-gray-300" />
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex-grow">
+                      <div className="relative">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="w-full flex items-center"
+                          onClick={() => document.getElementById('logo-upload')?.click()}
+                        >
+                          <Download className="h-4 w-4 mr-2" />
+                          Upload Logo
+                        </Button>
+                        <input
+                          id="logo-upload"
+                          type="file"
+                          className="hidden"
+                          accept="image/*"
+                          onChange={handleLogoUpload}
+                        />
+                      </div>
+                      {logoUrl && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="mt-2 text-red-500 hover:text-red-700"
+                          onClick={() => setLogoUrl("")}
+                        >
+                          Remove Logo
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                </div>
               </CardContent>
             </Card>
 
@@ -181,6 +250,7 @@ const ExportPage = () => {
                       theme={getThemeById(selectedTheme)}
                       format={selectedFormat}
                       selectedMatch={selectedMatch || undefined}
+                      tournamentLogo={logoUrl || undefined}
                     />
                   </div>
                 )}

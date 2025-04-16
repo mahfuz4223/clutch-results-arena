@@ -3,8 +3,9 @@ import React, { useRef } from "react";
 import { Team, Day, Match, ThemeOption } from "@/types";
 import { calculateOverallStandings } from "@/utils/pointCalculator";
 import { toPng } from "html-to-image";
+import { jsPDF } from "jspdf";
 import { Button } from "@/components/ui/button";
-import { Download } from "lucide-react";
+import { Download, Trophy } from "lucide-react";
 
 interface ResultCardProps {
   tournament: string;
@@ -14,6 +15,7 @@ interface ResultCardProps {
   theme: ThemeOption;
   format?: "day" | "match";
   selectedMatch?: string;
+  tournamentLogo?: string;
 }
 
 const ResultCard: React.FC<ResultCardProps> = ({
@@ -23,7 +25,8 @@ const ResultCard: React.FC<ResultCardProps> = ({
   selectedDay = "all",
   theme,
   format = "day",
-  selectedMatch
+  selectedMatch,
+  tournamentLogo
 }) => {
   const cardRef = useRef<HTMLDivElement>(null);
 
@@ -77,6 +80,9 @@ const ResultCard: React.FC<ResultCardProps> = ({
         <div className="flex flex-col items-center justify-center pt-10 pb-6">
           <div className="flex items-center mb-2">
             <img src="/public/lovable-uploads/fe3a6ee4-42e5-4918-94f9-1c5f9793fd70.png" alt="PUBG Mobile" className="h-16 mr-4" />
+            {tournamentLogo && (
+              <img src={tournamentLogo} alt="Tournament Logo" className="h-16 mr-4 object-contain" />
+            )}
             <div>
               <h1 className={`text-3xl font-bold uppercase ${theme.textColor}`}>{tournament}</h1>
               <div className={`h-1 w-full ${theme.accentColor} my-1 rounded-full`}></div>
@@ -162,13 +168,45 @@ const ResultCard: React.FC<ResultCardProps> = ({
         </div>
       </div>
 
-      <Button 
-        onClick={downloadImage} 
-        className="mt-4 bg-blue-600 hover:bg-blue-700"
-      >
-        <Download className="w-4 h-4 mr-2" />
-        Download Image
-      </Button>
+      <div className="mt-4 flex gap-2">
+        <Button 
+          onClick={downloadImage} 
+          className="bg-blue-600 hover:bg-blue-700 flex items-center"
+        >
+          <Download className="w-4 h-4 mr-2" />
+          Download Image
+        </Button>
+        
+        <Button 
+          variant="outline"
+          onClick={() => {
+            if (cardRef.current) {
+              toPng(cardRef.current)
+                .then((dataUrl) => {
+                  const link = document.createElement("a");
+                  link.download = `${tournament}-${matchTitle.replace(/\s+/g, "-").toLowerCase()}.pdf`;
+                  
+                  // Convert image to PDF (simple approach)
+                  const pdf = new jsPDF({
+                    orientation: "landscape",
+                    unit: "px",
+                    format: [1000, 720]
+                  });
+                  
+                  pdf.addImage(dataUrl, "PNG", 0, 0, 1000, 720);
+                  pdf.save(link.download);
+                })
+                .catch((error) => {
+                  console.error("Error generating PDF:", error);
+                });
+            }
+          }}
+          className="flex items-center"
+        >
+          <Download className="w-4 h-4 mr-2" />
+          Download PDF
+        </Button>
+      </div>
     </div>
   );
 };
