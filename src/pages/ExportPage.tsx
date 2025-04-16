@@ -11,11 +11,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
-import { ChevronLeft, Download, Trophy, Image } from "lucide-react";
+import { ChevronLeft, Download, Trophy, Image, Upload, Code } from "lucide-react";
 import ResultCard from "@/components/export/ResultCard";
 import { getThemeById, THEME_OPTIONS } from "@/utils/themes";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Textarea } from "@/components/ui/textarea";
+import { Slider } from "@/components/ui/slider";
 
 const ExportPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -25,8 +27,11 @@ const ExportPage = () => {
   const [selectedFormat, setSelectedFormat] = useState<"day" | "match">("day");
   const [selectedTheme, setSelectedTheme] = useState(THEME_OPTIONS[0].id);
   const [logoUrl, setLogoUrl] = useState<string>("");
+  const [backgroundUrl, setBackgroundUrl] = useState<string>("");
+  const [backgroundOpacity, setBackgroundOpacity] = useState<number>(20);
   const [showPubgLogo, setShowPubgLogo] = useState(true);
-  const [customFooterText, setCustomFooterText] = useState("");
+  const [customFooterText, setCustomFooterText] = useState("Generated with TournaNext");
+  const [customCss, setCustomCss] = useState("");
   
   // Select tournament if not already selected
   React.useEffect(() => {
@@ -42,6 +47,19 @@ const ExportPage = () => {
       reader.onloadend = () => {
         if (typeof reader.result === 'string') {
           setLogoUrl(reader.result);
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleBackgroundUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        if (typeof reader.result === 'string') {
+          setBackgroundUrl(reader.result);
         }
       };
       reader.readAsDataURL(file);
@@ -118,151 +136,229 @@ const ExportPage = () => {
               <CardHeader>
                 <CardTitle>Export Options</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="space-y-3">
-                  <Label>Format</Label>
-                  <RadioGroup 
-                    value={selectedFormat} 
-                    onValueChange={(v) => setSelectedFormat(v as "day" | "match")}
-                    className="space-y-2"
-                  >
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="day" id="day" />
-                      <Label htmlFor="day">Day Results</Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="match" id="match" />
-                      <Label htmlFor="match">Single Match Results</Label>
-                    </div>
-                  </RadioGroup>
-                </div>
-
-                <div className="space-y-3">
-                  <Label>Data to Show</Label>
-                  {selectedFormat === "day" ? (
-                    <Select value={selectedDay} onValueChange={setSelectedDay}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select Day" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All Days (Overall)</SelectItem>
-                        {currentTournament.days.map(day => (
-                          <SelectItem key={day.id} value={day.id}>
-                            {day.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  ) : (
-                    <Select value={selectedMatch || ""} onValueChange={setSelectedMatch}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select Match" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {allMatches.map(match => (
-                          <SelectItem key={match.id} value={match.id}>
-                            {currentTournament.days.find(d => d.id === match.dayId)?.name}: {match.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  )}
-                </div>
-
-                <div className="space-y-3">
-                  <Label>Theme</Label>
-                  <Select value={selectedTheme} onValueChange={setSelectedTheme}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select Theme" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {THEME_OPTIONS.map(theme => (
-                        <SelectItem key={theme.id} value={theme.id}>
-                          {theme.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-3">
-                  <Label>Custom Tournament Logo</Label>
-                  <div className="flex items-center space-x-4">
-                    <div className="flex-shrink-0">
-                      {logoUrl ? (
-                        <div className="w-16 h-16 rounded-md overflow-hidden border border-gray-200">
-                          <img src={logoUrl} alt="Tournament logo" className="w-full h-full object-cover" />
+              <CardContent>
+                <Tabs defaultValue="basic" className="w-full mb-6">
+                  <TabsList className="grid w-full grid-cols-3">
+                    <TabsTrigger value="basic">Basic</TabsTrigger>
+                    <TabsTrigger value="images">Images</TabsTrigger>
+                    <TabsTrigger value="advanced">Advanced</TabsTrigger>
+                  </TabsList>
+                  
+                  <TabsContent value="basic" className="space-y-6">
+                    <div className="space-y-3">
+                      <Label>Format</Label>
+                      <RadioGroup 
+                        value={selectedFormat} 
+                        onValueChange={(v) => setSelectedFormat(v as "day" | "match")}
+                        className="space-y-2"
+                      >
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="day" id="day" />
+                          <Label htmlFor="day">Day Results</Label>
                         </div>
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="match" id="match" />
+                          <Label htmlFor="match">Single Match Results</Label>
+                        </div>
+                      </RadioGroup>
+                    </div>
+
+                    <div className="space-y-3">
+                      <Label>Data to Show</Label>
+                      {selectedFormat === "day" ? (
+                        <Select value={selectedDay} onValueChange={setSelectedDay}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select Day" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">All Days (Overall)</SelectItem>
+                            {currentTournament.days.map(day => (
+                              <SelectItem key={day.id} value={day.id}>
+                                {day.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       ) : (
-                        <div className="w-16 h-16 rounded-md border border-dashed border-gray-300 flex items-center justify-center bg-gray-50">
-                          <Image className="h-6 w-6 text-gray-300" />
+                        <Select value={selectedMatch || ""} onValueChange={setSelectedMatch}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select Match" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {allMatches.map(match => (
+                              <SelectItem key={match.id} value={match.id}>
+                                {currentTournament.days.find(d => d.id === match.dayId)?.name}: {match.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      )}
+                    </div>
+
+                    <div className="space-y-3">
+                      <Label>Theme</Label>
+                      <Select value={selectedTheme} onValueChange={setSelectedTheme}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select Theme" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {THEME_OPTIONS.map(theme => (
+                            <SelectItem key={theme.id} value={theme.id}>
+                              {theme.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </TabsContent>
+                  
+                  <TabsContent value="images" className="space-y-6">
+                    <div className="space-y-3">
+                      <Label>Tournament Logo</Label>
+                      <div className="flex items-center space-x-4">
+                        <div className="flex-shrink-0">
+                          {logoUrl ? (
+                            <div className="w-16 h-16 rounded-md overflow-hidden border border-gray-200">
+                              <img src={logoUrl} alt="Tournament logo" className="w-full h-full object-cover" />
+                            </div>
+                          ) : (
+                            <div className="w-16 h-16 rounded-md border border-dashed border-gray-300 flex items-center justify-center bg-gray-50">
+                              <Image className="h-6 w-6 text-gray-300" />
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex-grow">
+                          <div className="relative">
+                            <Button
+                              type="button"
+                              variant="outline"
+                              className="w-full flex items-center"
+                              onClick={() => document.getElementById('logo-upload')?.click()}
+                            >
+                              <Upload className="h-4 w-4 mr-2" />
+                              Upload Logo
+                            </Button>
+                            <input
+                              id="logo-upload"
+                              type="file"
+                              className="hidden"
+                              accept="image/*"
+                              onChange={handleLogoUpload}
+                            />
+                          </div>
+                          {logoUrl && (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="mt-2 text-red-500 hover:text-red-700"
+                              onClick={() => setLogoUrl("")}
+                            >
+                              Remove Logo
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-3">
+                      <Label>Background Image</Label>
+                      <div className="flex items-center space-x-4">
+                        <div className="flex-shrink-0">
+                          {backgroundUrl ? (
+                            <div className="w-16 h-16 rounded-md overflow-hidden border border-gray-200">
+                              <img src={backgroundUrl} alt="Background" className="w-full h-full object-cover" />
+                            </div>
+                          ) : (
+                            <div className="w-16 h-16 rounded-md border border-dashed border-gray-300 flex items-center justify-center bg-gray-50">
+                              <Image className="h-6 w-6 text-gray-300" />
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex-grow">
+                          <div className="relative">
+                            <Button
+                              type="button"
+                              variant="outline"
+                              className="w-full flex items-center"
+                              onClick={() => document.getElementById('bg-upload')?.click()}
+                            >
+                              <Upload className="h-4 w-4 mr-2" />
+                              Upload Background
+                            </Button>
+                            <input
+                              id="bg-upload"
+                              type="file"
+                              className="hidden"
+                              accept="image/*"
+                              onChange={handleBackgroundUpload}
+                            />
+                          </div>
+                          {backgroundUrl && (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="mt-2 text-red-500 hover:text-red-700"
+                              onClick={() => setBackgroundUrl("")}
+                            >
+                              Remove Background
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                      
+                      {backgroundUrl && (
+                        <div className="pt-2">
+                          <Label className="mb-2 block">Background Opacity: {backgroundOpacity}%</Label>
+                          <Slider 
+                            value={[backgroundOpacity]} 
+                            onValueChange={(value) => setBackgroundOpacity(value[0])} 
+                            min={0} 
+                            max={100} 
+                            step={5}
+                          />
                         </div>
                       )}
                     </div>
-                    <div className="flex-grow">
-                      <div className="relative">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          className="w-full flex items-center"
-                          onClick={() => document.getElementById('logo-upload')?.click()}
-                        >
-                          <Download className="h-4 w-4 mr-2" />
-                          Upload Logo
-                        </Button>
-                        <input
-                          id="logo-upload"
-                          type="file"
-                          className="hidden"
-                          accept="image/*"
-                          onChange={handleLogoUpload}
+                  </TabsContent>
+                  
+                  <TabsContent value="advanced" className="space-y-6">
+                    <div className="space-y-3">
+                      <div className="flex items-center space-x-2">
+                        <Checkbox
+                          id="show-pubg-logo"
+                          checked={showPubgLogo}
+                          onCheckedChange={(checked) => setShowPubgLogo(checked as boolean)}
                         />
+                        <Label htmlFor="show-pubg-logo">Show PUBG Mobile Logo</Label>
                       </div>
-                      {logoUrl && (
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          className="mt-2 text-red-500 hover:text-red-700"
-                          onClick={() => setLogoUrl("")}
-                        >
-                          Remove Logo
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                <Collapsible className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <h4 className="font-medium">Advanced Settings</h4>
-                    <CollapsibleTrigger asChild>
-                      <Button variant="ghost" size="sm">
-                        <ChevronLeft className="h-4 w-4 transition-all [&[data-state=open]]:rotate-90" />
-                      </Button>
-                    </CollapsibleTrigger>
-                  </div>
-                  <CollapsibleContent className="space-y-4">
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
-                        id="show-pubg-logo"
-                        checked={showPubgLogo}
-                        onCheckedChange={(checked) => setShowPubgLogo(checked as boolean)}
-                      />
-                      <Label htmlFor="show-pubg-logo">Show PUBG Mobile Logo</Label>
                     </div>
                     
                     <div className="space-y-2">
                       <Label htmlFor="footer-text">Custom Footer Text</Label>
                       <Input
                         id="footer-text"
-                        placeholder="Enter custom footer text"
+                        placeholder="Generated with TournaNext"
                         value={customFooterText}
                         onChange={(e) => setCustomFooterText(e.target.value)}
                       />
                     </div>
-                  </CollapsibleContent>
-                </Collapsible>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="custom-css">Custom CSS (Advanced)</Label>
+                      <Textarea
+                        id="custom-css"
+                        placeholder=".className { color: red; }"
+                        value={customCss}
+                        onChange={(e) => setCustomCss(e.target.value)}
+                        rows={5}
+                        className="font-mono text-sm"
+                      />
+                      <p className="text-xs text-gray-500">Add custom CSS to style your export results</p>
+                    </div>
+                  </TabsContent>
+                </Tabs>
               </CardContent>
             </Card>
 
@@ -287,6 +383,10 @@ const ExportPage = () => {
                       format={selectedFormat}
                       selectedMatch={selectedMatch || undefined}
                       tournamentLogo={logoUrl || undefined}
+                      backgroundImage={backgroundUrl || undefined}
+                      customCss={customCss}
+                      showPubgLogo={showPubgLogo}
+                      customFooterText={customFooterText}
                     />
                   </div>
                 )}

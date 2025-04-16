@@ -55,9 +55,9 @@ const MatchesPage = () => {
     if (newDayName.trim()) {
       setIsAddingDay(true);
       try {
-        const newDay = await addDay(newDayName);
-        if (newDay) {
-          setSelectedDayId(newDay.id);
+        const day = await addDay(newDayName);
+        if (day) {
+          setSelectedDayId(day.id);
           setNewDayName("");
         }
       } catch (error) {
@@ -90,6 +90,7 @@ const MatchesPage = () => {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    URL.revokeObjectURL(url);
   };
 
   if (!currentTournament) {
@@ -120,7 +121,7 @@ const MatchesPage = () => {
               </Link>
               <div className="flex items-center">
                 <img 
-                  src="/public/lovable-uploads/fe3a6ee4-42e5-4918-94f9-1c5f9793fd70.png" 
+                  src="/public/lovable-uploads/208256eb-7194-493e-b6f2-1bb74a96f28d.png" 
                   alt="PUBG Mobile" 
                   className="h-8 mr-2" 
                 />
@@ -209,7 +210,7 @@ const MatchesPage = () => {
                           <CardTitle>{selectedDay.name} Matches</CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-6">
-                          <MatchForm dayId={selectedDay.id} />
+                          <MatchForm dayId={selectedDay.id} onClose={() => {}} />
                           
                           <Separator />
                           
@@ -322,7 +323,7 @@ const MatchesPage = () => {
                                   
                                   {showResultsForMatch === match.id && (
                                     <ResultsInput
-                                      match={match}
+                                      matchId={match.id}
                                       teams={currentTournament.teams}
                                       onComplete={() => setShowResultsForMatch(null)}
                                     />

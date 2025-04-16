@@ -5,16 +5,16 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Match, Day } from "@/types";
+import { Match } from "@/types";
 import { X } from "lucide-react";
 
 interface MatchFormProps {
   existingMatch?: Match;
   dayId?: string;
-  onClose: () => void;
+  onClose?: () => void;
 }
 
-const MatchForm: React.FC<MatchFormProps> = ({ existingMatch, dayId: initialDayId, onClose }) => {
+const MatchForm: React.FC<MatchFormProps> = ({ existingMatch, dayId: initialDayId, onClose = () => {} }) => {
   const { currentTournament, addMatch, updateMatch } = useTournament();
   const [name, setName] = useState(existingMatch?.name || "");
   const [dayId, setDayId] = useState(initialDayId || existingMatch?.dayId || "");

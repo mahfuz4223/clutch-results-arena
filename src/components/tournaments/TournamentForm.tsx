@@ -28,11 +28,9 @@ const TournamentForm: React.FC = () => {
     setIsSubmitting(true);
     
     try {
-      // Correct call with only the required parameters
-      const tournament = await createTournament(name, description);
-      if (tournament) {
-        navigate(`/tournament/${tournament.id}`);
-      }
+      // Use await to wait for the Promise to resolve
+      const tournament = await createTournament(name, description, logoUrl); 
+      navigate(`/tournament/${tournament.id}`);
     } catch (err) {
       console.error("Error creating tournament:", err);
       setError("Failed to create tournament. Please try again.");
