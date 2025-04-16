@@ -13,8 +13,9 @@ const TournamentForm: React.FC = () => {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [error, setError] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!name.trim()) {
@@ -22,8 +23,19 @@ const TournamentForm: React.FC = () => {
       return;
     }
     
-    const tournament = createTournament(name, description);
-    navigate(`/tournament/${tournament.id}`);
+    setIsSubmitting(true);
+    
+    try {
+      const tournament = await createTournament(name, description);
+      if (tournament) {
+        navigate(`/tournament/${tournament.id}`);
+      }
+    } catch (err) {
+      console.error("Error creating tournament:", err);
+      setError("Failed to create tournament. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -65,10 +77,13 @@ const TournamentForm: React.FC = () => {
               type="button"
               variant="outline"
               onClick={() => navigate(-1)}
+              disabled={isSubmitting}
             >
               Cancel
             </Button>
-            <Button type="submit">Create Tournament</Button>
+            <Button type="submit" disabled={isSubmitting}>
+              {isSubmitting ? "Creating..." : "Create Tournament"}
+            </Button>
           </div>
         </form>
       </CardContent>

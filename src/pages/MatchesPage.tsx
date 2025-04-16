@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { useTournament } from "@/context/TournamentContext";
@@ -23,6 +22,7 @@ const MatchesPage = () => {
   const [selectedDayId, setSelectedDayId] = useState<string | null>(null);
   const [showResultsForMatch, setShowResultsForMatch] = useState<string | null>(null);
   const [newDayName, setNewDayName] = useState<string>("");
+  const [isAddingDay, setIsAddingDay] = useState(false);
   
   // Select tournament if not already selected
   React.useEffect(() => {
@@ -53,12 +53,21 @@ const MatchesPage = () => {
     }
   }, [currentTournament, selectedDayId]);
 
-  const handleAddDay = (e: React.FormEvent) => {
+  const handleAddDay = async (e: React.FormEvent) => {
     e.preventDefault();
     if (newDayName.trim()) {
-      const newDay = addDay(newDayName);
-      setSelectedDayId(newDay.id);
-      setNewDayName("");
+      setIsAddingDay(true);
+      try {
+        const newDay = await addDay(newDayName);
+        if (newDay) {
+          setSelectedDayId(newDay.id);
+          setNewDayName("");
+        }
+      } catch (error) {
+        console.error("Error adding day:", error);
+      } finally {
+        setIsAddingDay(false);
+      }
     }
   };
 
