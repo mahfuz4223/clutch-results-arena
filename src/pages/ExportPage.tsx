@@ -4,15 +4,18 @@ import { useParams, Link } from "react-router-dom";
 import { useTournament } from "@/context/TournamentContext";
 import Layout from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
-import { ChevronLeft, Download, Trophy } from "lucide-react";
+import { ChevronLeft, Download, Trophy, Image } from "lucide-react";
 import ResultCard from "@/components/export/ResultCard";
 import { getThemeById, THEME_OPTIONS } from "@/utils/themes";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Checkbox } from "@/components/ui/checkbox";
 
 const ExportPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -22,6 +25,8 @@ const ExportPage = () => {
   const [selectedFormat, setSelectedFormat] = useState<"day" | "match">("day");
   const [selectedTheme, setSelectedTheme] = useState(THEME_OPTIONS[0].id);
   const [logoUrl, setLogoUrl] = useState<string>("");
+  const [showPubgLogo, setShowPubgLogo] = useState(true);
+  const [customFooterText, setCustomFooterText] = useState("");
   
   // Select tournament if not already selected
   React.useEffect(() => {
@@ -76,7 +81,7 @@ const ExportPage = () => {
               </Link>
               <div className="flex items-center">
                 <img 
-                  src="/public/lovable-uploads/fe3a6ee4-42e5-4918-94f9-1c5f9793fd70.png" 
+                  src="/public/lovable-uploads/208256eb-7194-493e-b6f2-1bb74a96f28d.png" 
                   alt="PUBG Mobile" 
                   className="h-8 mr-2" 
                 />
@@ -190,7 +195,7 @@ const ExportPage = () => {
                         </div>
                       ) : (
                         <div className="w-16 h-16 rounded-md border border-dashed border-gray-300 flex items-center justify-center bg-gray-50">
-                          <Trophy className="h-6 w-6 text-gray-300" />
+                          <Image className="h-6 w-6 text-gray-300" />
                         </div>
                       )}
                     </div>
@@ -227,6 +232,37 @@ const ExportPage = () => {
                     </div>
                   </div>
                 </div>
+
+                <Collapsible className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <h4 className="font-medium">Advanced Settings</h4>
+                    <CollapsibleTrigger asChild>
+                      <Button variant="ghost" size="sm">
+                        <ChevronLeft className="h-4 w-4 transition-all [&[data-state=open]]:rotate-90" />
+                      </Button>
+                    </CollapsibleTrigger>
+                  </div>
+                  <CollapsibleContent className="space-y-4">
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="show-pubg-logo"
+                        checked={showPubgLogo}
+                        onCheckedChange={(checked) => setShowPubgLogo(checked as boolean)}
+                      />
+                      <Label htmlFor="show-pubg-logo">Show PUBG Mobile Logo</Label>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="footer-text">Custom Footer Text</Label>
+                      <Input
+                        id="footer-text"
+                        placeholder="Enter custom footer text"
+                        value={customFooterText}
+                        onChange={(e) => setCustomFooterText(e.target.value)}
+                      />
+                    </div>
+                  </CollapsibleContent>
+                </Collapsible>
               </CardContent>
             </Card>
 

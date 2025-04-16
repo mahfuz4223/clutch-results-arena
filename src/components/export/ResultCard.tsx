@@ -79,7 +79,11 @@ const ResultCard: React.FC<ResultCardProps> = ({
         {/* Header */}
         <div className="flex flex-col items-center justify-center pt-10 pb-6">
           <div className="flex items-center mb-2">
-            <img src="/public/lovable-uploads/fe3a6ee4-42e5-4918-94f9-1c5f9793fd70.png" alt="PUBG Mobile" className="h-16 mr-4" />
+            <img 
+              src="/public/lovable-uploads/208256eb-7194-493e-b6f2-1bb74a96f28d.png" 
+              alt="PUBG Mobile" 
+              className="h-16 mr-4" 
+            />
             {tournamentLogo && (
               <img src={tournamentLogo} alt="Tournament Logo" className="h-16 mr-4 object-contain" />
             )}
@@ -162,7 +166,11 @@ const ResultCard: React.FC<ResultCardProps> = ({
         <div className={`absolute bottom-0 left-0 right-0 flex justify-between items-center p-4 ${theme.headerBg}`}>
           <div className="text-sm text-white/70">© PUBG Mobile Tournament Maker</div>
           <div className="flex items-center">
-            <img src="/public/lovable-uploads/fe3a6ee4-42e5-4918-94f9-1c5f9793fd70.png" alt="PUBG Mobile" className="h-8 mr-2" />
+            <img 
+              src="/public/lovable-uploads/208256eb-7194-493e-b6f2-1bb74a96f28d.png" 
+              alt="PUBG Mobile" 
+              className="h-8 mr-2" 
+            />
             <span className="text-sm text-white/70">Generated with Tournament Maker</span>
           </div>
         </div>
@@ -183,9 +191,6 @@ const ResultCard: React.FC<ResultCardProps> = ({
             if (cardRef.current) {
               toPng(cardRef.current)
                 .then((dataUrl) => {
-                  const link = document.createElement("a");
-                  link.download = `${tournament}-${matchTitle.replace(/\s+/g, "-").toLowerCase()}.pdf`;
-                  
                   // Convert image to PDF (simple approach)
                   const pdf = new jsPDF({
                     orientation: "landscape",
@@ -194,7 +199,7 @@ const ResultCard: React.FC<ResultCardProps> = ({
                   });
                   
                   pdf.addImage(dataUrl, "PNG", 0, 0, 1000, 720);
-                  pdf.save(link.download);
+                  pdf.save(`${tournament}-${matchTitle.replace(/\s+/g, "-").toLowerCase()}.pdf`);
                 })
                 .catch((error) => {
                   console.error("Error generating PDF:", error);

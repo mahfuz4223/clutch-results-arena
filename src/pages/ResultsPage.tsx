@@ -10,7 +10,8 @@ import OverallStandings from "@/components/results/OverallStandings";
 import ResultsTable from "@/components/results/ResultsTable";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ChevronLeft, BarChart3 } from "lucide-react";
+import { ChevronLeft, BarChart3, Download } from "lucide-react";
+import { Day, Match, MatchResult, Team } from "@/types";
 
 const ResultsPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -29,6 +30,41 @@ const ResultsPage = () => {
   React.useEffect(() => {
     setSelectedMatch(null);
   }, [selectedDay]);
+
+  // Function to export results as JSON
+  const exportResults = () => {
+    if (!currentTournament) return;
+    
+    const data = {
+      tournamentName: currentTournament.name,
+      tournamentId: currentTournament.id,
+      days: currentTournament.days.map(day => ({
+        id: day.id,
+        name: day.name,
+        matches: day.matches.map(match => ({
+          id: match.id,
+          name: match.name,
+          results: match.results
+        }))
+      })),
+      teams: currentTournament.teams.map(team => ({
+        id: team.id,
+        name: team.name,
+        flag: team.flag
+      }))
+    };
+    
+    const jsonString = JSON.stringify(data, null, 2);
+    const blob = new Blob([jsonString], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${currentTournament.name.replace(/\s+/g, '-').toLowerCase()}-results.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
 
   if (!currentTournament) {
     return (
@@ -65,17 +101,35 @@ const ResultsPage = () => {
                   <ChevronLeft className="h-4 w-4" />
                 </Button>
               </Link>
-              <h1 className="text-3xl font-bold">Results</h1>
+              <div className="flex items-center">
+                <img 
+                  src="/public/lovable-uploads/208256eb-7194-493e-b6f2-1bb74a96f28d.png" 
+                  alt="PUBG Mobile" 
+                  className="h-8 mr-2" 
+                />
+                <h1 className="text-3xl font-bold">Results</h1>
+              </div>
             </div>
             <p className="text-gray-500">View standings for {currentTournament.name}</p>
           </div>
           
-          <Link to={`/tournament/${currentTournament.id}/export`}>
-            <Button variant="outline" className="flex items-center gap-2">
-              <BarChart3 className="h-4 w-4" />
-              Export Results
+          <div className="flex space-x-3">
+            <Button 
+              variant="outline" 
+              className="flex items-center gap-2"
+              onClick={exportResults}
+            >
+              <Download className="h-4 w-4" />
+              Export JSON
             </Button>
-          </Link>
+            
+            <Link to={`/tournament/${currentTournament.id}/export`}>
+              <Button variant="outline" className="flex items-center gap-2">
+                <BarChart3 className="h-4 w-4" />
+                Export Graphics
+              </Button>
+            </Link>
+          </div>
         </div>
 
         {currentTournament.teams.length === 0 ? (

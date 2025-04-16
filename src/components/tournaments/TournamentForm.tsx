@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Trophy, Upload } from "lucide-react";
+import { Trophy, Upload, Image } from "lucide-react";
 
 const TournamentForm: React.FC = () => {
   const navigate = useNavigate();
@@ -28,7 +28,8 @@ const TournamentForm: React.FC = () => {
     setIsSubmitting(true);
     
     try {
-      const tournament = await createTournament(name, description, logoUrl);
+      // Correct call with only the required parameters
+      const tournament = await createTournament(name, description);
       if (tournament) {
         navigate(`/tournament/${tournament.id}`);
       }
@@ -58,7 +59,7 @@ const TournamentForm: React.FC = () => {
       <CardHeader className="flex flex-col items-center">
         <div className="flex items-center mb-4">
           <img 
-            src="/public/lovable-uploads/fe3a6ee4-42e5-4918-94f9-1c5f9793fd70.png" 
+            src="/public/lovable-uploads/208256eb-7194-493e-b6f2-1bb74a96f28d.png" 
             alt="PUBG Mobile" 
             className="h-12 mr-2" 
           />
@@ -107,7 +108,7 @@ const TournamentForm: React.FC = () => {
                   </div>
                 ) : (
                   <div className="w-20 h-20 rounded-md border border-dashed border-gray-300 flex items-center justify-center bg-gray-50">
-                    <Trophy className="h-8 w-8 text-gray-300" />
+                    <Image className="h-8 w-8 text-gray-300" />
                   </div>
                 )}
               </div>
