@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { useTournament } from "@/context/TournamentContext";
@@ -33,7 +32,6 @@ const ExportPage = () => {
   const [customFooterText, setCustomFooterText] = useState("Generated with TournaNext");
   const [customCss, setCustomCss] = useState("");
   
-  // Select tournament if not already selected
   React.useEffect(() => {
     if (id && (!currentTournament || currentTournament.id !== id)) {
       selectTournament(id);
@@ -64,6 +62,10 @@ const ExportPage = () => {
       };
       reader.readAsDataURL(file);
     }
+  };
+
+  const handleBackgroundOpacityChange = (value: number[]) => {
+    setBackgroundOpacity(value[0]);
   };
 
   if (!currentTournament) {
@@ -131,7 +133,6 @@ const ExportPage = () => {
           </Card>
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Options Panel */}
             <Card className="lg:col-span-1">
               <CardHeader>
                 <CardTitle>Export Options</CardTitle>
@@ -313,7 +314,7 @@ const ExportPage = () => {
                           <Label className="mb-2 block">Background Opacity: {backgroundOpacity}%</Label>
                           <Slider 
                             value={[backgroundOpacity]} 
-                            onValueChange={(value) => setBackgroundOpacity(value[0])} 
+                            onValueChange={handleBackgroundOpacityChange} 
                             min={0} 
                             max={100} 
                             step={5}
@@ -362,7 +363,6 @@ const ExportPage = () => {
               </CardContent>
             </Card>
 
-            {/* Preview Panel */}
             <Card className="lg:col-span-2">
               <CardHeader>
                 <CardTitle>Preview</CardTitle>
