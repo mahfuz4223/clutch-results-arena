@@ -11,7 +11,7 @@ import ResultsTable from "@/components/results/ResultsTable";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ChevronLeft, BarChart3, Download } from "lucide-react";
-import { Day, Match, MatchResult, Team } from "@/types";
+import { toast } from "sonner";
 
 const ResultsPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -35,35 +35,42 @@ const ResultsPage = () => {
   const exportResults = () => {
     if (!currentTournament) return;
     
-    const data = {
-      tournamentName: currentTournament.name,
-      tournamentId: currentTournament.id,
-      days: currentTournament.days.map(day => ({
-        id: day.id,
-        name: day.name,
-        matches: day.matches.map(match => ({
-          id: match.id,
-          name: match.name,
-          results: match.results
+    try {
+      const data = {
+        tournamentName: currentTournament.name,
+        tournamentId: currentTournament.id,
+        days: currentTournament.days.map(day => ({
+          id: day.id,
+          name: day.name,
+          matches: day.matches.map(match => ({
+            id: match.id,
+            name: match.name,
+            results: match.results
+          }))
+        })),
+        teams: currentTournament.teams.map(team => ({
+          id: team.id,
+          name: team.name,
+          flag: team.flag
         }))
-      })),
-      teams: currentTournament.teams.map(team => ({
-        id: team.id,
-        name: team.name,
-        flag: team.flag
-      }))
-    };
-    
-    const jsonString = JSON.stringify(data, null, 2);
-    const blob = new Blob([jsonString], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${currentTournament.name.replace(/\s+/g, '-').toLowerCase()}-results.json`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+      };
+      
+      const jsonString = JSON.stringify(data, null, 2);
+      const blob = new Blob([jsonString], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${currentTournament.name.replace(/\s+/g, '-').toLowerCase()}-results.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      
+      toast.success("Results exported successfully!");
+    } catch (error) {
+      console.error("Error exporting results:", error);
+      toast.error("Failed to export results");
+    }
   };
 
   if (!currentTournament) {

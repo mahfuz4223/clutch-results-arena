@@ -56,9 +56,6 @@ const ResultCard: React.FC<ResultCardProps> = ({
     ? matches[0]?.name || "MATCH RESULTS"
     : dayTitle;
 
-  // Calculate standings
-  const standings = calculateOverallStandings(teams, matches);
-
   // Function to download the image
   const handleDownloadImage = () => {
     downloadAsImage(

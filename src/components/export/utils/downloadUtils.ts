@@ -13,12 +13,19 @@ export const downloadAsImage = (
     return Promise.reject(new Error("Element not found"));
   }
   
-  return toPng(element)
+  // Add a small delay to ensure the element is fully rendered
+  return new Promise((resolve) => setTimeout(resolve, 100))
+    .then(() => toPng(element, { 
+      quality: 0.95,
+      pixelRatio: 2 
+    }))
     .then((dataUrl) => {
       const link = document.createElement("a");
       link.download = filename;
       link.href = dataUrl;
+      document.body.appendChild(link);
       link.click();
+      document.body.removeChild(link);
     });
 };
 
@@ -33,15 +40,26 @@ export const downloadAsPdf = (
     return Promise.reject(new Error("Element not found"));
   }
   
-  return toPng(element)
+  // Add a small delay to ensure the element is fully rendered
+  return new Promise((resolve) => setTimeout(resolve, 100))
+    .then(() => toPng(element, { 
+      quality: 0.95,
+      pixelRatio: 2 
+    }))
     .then((dataUrl) => {
       const pdf = new jsPDF({
         orientation: "landscape",
         unit: "px",
-        format: [1000, 720]
+        format: [1000, 720],
+        hotfixes: ["px_scaling"]
       });
       
-      pdf.addImage(dataUrl, "PNG", 0, 0, 1000, 720);
+      // Calculate the PDF dimensions to maintain aspect ratio
+      const imgProps = pdf.getImageProperties(dataUrl);
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+      
+      pdf.addImage(dataUrl, "PNG", 0, 0, pdfWidth, pdfHeight);
       pdf.save(filename);
     });
 };

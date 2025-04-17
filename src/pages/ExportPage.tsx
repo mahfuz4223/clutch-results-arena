@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { useTournament } from "@/context/TournamentContext";
@@ -18,15 +19,43 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
 import { Slider } from "@/components/ui/slider";
 
+const PRESET_BACKGROUNDS = [
+  { 
+    id: "erangel", 
+    name: "Erangel Map", 
+    url: "/lovable-uploads/6596d994-4323-45a5-9ad1-f195654e5e6f.png" 
+  },
+  { 
+    id: "parachute", 
+    name: "Parachuting", 
+    url: "/lovable-uploads/12d2c8eb-c515-4e23-a4e0-4f4c7a547c54.png" 
+  },
+  { 
+    id: "pubg-logo", 
+    name: "PUBG Logo", 
+    url: "/lovable-uploads/537d9a50-477b-4c4c-9ef5-cacde5251121.png" 
+  },
+  { 
+    id: "blue-gradient", 
+    name: "Blue Gradient", 
+    url: "/lovable-uploads/e87b074a-5638-44a9-89b8-c7a619fc5af7.png" 
+  },
+  { 
+    id: "none", 
+    name: "No Background", 
+    url: "" 
+  }
+];
+
 const ExportPage = () => {
   const { id } = useParams<{ id: string }>();
   const { selectTournament, currentTournament } = useTournament();
   const [selectedDay, setSelectedDay] = useState<string>("all");
   const [selectedMatch, setSelectedMatch] = useState<string | null>(null);
   const [selectedFormat, setSelectedFormat] = useState<"day" | "match">("day");
-  const [selectedTheme, setSelectedTheme] = useState(THEME_OPTIONS[0].id);
+  const [selectedTheme, setSelectedTheme] = useState("pubg-blue");
   const [logoUrl, setLogoUrl] = useState<string>("");
-  const [backgroundUrl, setBackgroundUrl] = useState<string>("");
+  const [backgroundUrl, setBackgroundUrl] = useState<string>(PRESET_BACKGROUNDS[0].url);
   const [backgroundOpacity, setBackgroundOpacity] = useState<number>(20);
   const [showPubgLogo, setShowPubgLogo] = useState(true);
   const [customFooterText, setCustomFooterText] = useState("Generated with TournaNext");
@@ -67,6 +96,10 @@ const ExportPage = () => {
   const handleBackgroundOpacityChange = (value: number[]) => {
     setBackgroundOpacity(value[0]);
   };
+  
+  const handleSelectPresetBackground = (url: string) => {
+    setBackgroundUrl(url);
+  };
 
   if (!currentTournament) {
     return (
@@ -101,7 +134,7 @@ const ExportPage = () => {
               </Link>
               <div className="flex items-center">
                 <img 
-                  src="/public/lovable-uploads/208256eb-7194-493e-b6f2-1bb74a96f28d.png" 
+                  src="/lovable-uploads/208256eb-7194-493e-b6f2-1bb74a96f28d.png" 
                   alt="PUBG Mobile" 
                   className="h-8 mr-2" 
                 />
@@ -264,6 +297,36 @@ const ExportPage = () => {
                     
                     <div className="space-y-3">
                       <Label>Background Image</Label>
+                      
+                      <div className="grid grid-cols-3 gap-2 mb-4">
+                        {PRESET_BACKGROUNDS.map(bg => (
+                          <div 
+                            key={bg.id}
+                            className={`relative cursor-pointer rounded-md overflow-hidden border-2 transition-all ${
+                              backgroundUrl === bg.url ? 'border-blue-500' : 'border-transparent'
+                            }`}
+                            onClick={() => handleSelectPresetBackground(bg.url)}
+                          >
+                            {bg.url ? (
+                              <div className="aspect-video w-full">
+                                <img 
+                                  src={bg.url} 
+                                  alt={bg.name} 
+                                  className="object-cover w-full h-full" 
+                                />
+                              </div>
+                            ) : (
+                              <div className="aspect-video w-full bg-gray-100 flex items-center justify-center">
+                                <span className="text-xs text-gray-500">None</span>
+                              </div>
+                            )}
+                            <div className="absolute bottom-0 left-0 right-0 bg-black/70 p-1">
+                              <p className="text-xs text-white truncate text-center">{bg.name}</p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                      
                       <div className="flex items-center space-x-4">
                         <div className="flex-shrink-0">
                           {backgroundUrl ? (
@@ -285,7 +348,7 @@ const ExportPage = () => {
                               onClick={() => document.getElementById('bg-upload')?.click()}
                             >
                               <Upload className="h-4 w-4 mr-2" />
-                              Upload Background
+                              Upload Custom Background
                             </Button>
                             <input
                               id="bg-upload"

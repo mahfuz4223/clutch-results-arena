@@ -1,6 +1,5 @@
 
 import React from "react";
-import StandingsTable from "./StandingsTable";
 import { TeamStanding } from "../types/standings";
 import { ThemeOption } from "@/types";
 
@@ -16,8 +15,8 @@ const StandingsContent: React.FC<StandingsContentProps> = ({ standings, theme })
   const rightColumnStandings = standings.slice(halfIndex);
 
   return (
-    <div className="px-8 pb-8">
-      <div className="flex justify-between">
+    <div className="px-8 pb-8 pt-4" style={{ backgroundImage: "linear-gradient(to bottom, rgba(0,0,0,0.2) 0%, rgba(0,0,0,0.6) 100%)" }}>
+      <div className="flex justify-between gap-4">
         {/* Left Column */}
         <div className="w-[48%]">
           <StandingsTable standings={leftColumnStandings} theme={theme} />
@@ -33,3 +32,46 @@ const StandingsContent: React.FC<StandingsContentProps> = ({ standings, theme })
 };
 
 export default StandingsContent;
+
+// StandingsTable Component
+interface StandingsTableProps {
+  standings: TeamStanding[];
+  theme: ThemeOption;
+}
+
+const StandingsTable: React.FC<StandingsTableProps> = ({ standings, theme }) => {
+  return (
+    <div className="rounded-md overflow-hidden">
+      <table className="w-full border-collapse">
+        <thead className="text-sm uppercase bg-blue-900 text-white">
+          <tr>
+            <th className="py-3 px-3 text-left">#</th>
+            <th className="py-3 px-3 text-left">Team</th>
+            <th className="py-3 px-3 text-center">WWCD</th>
+            <th className="py-3 px-3 text-center">Place Pts</th>
+            <th className="py-3 px-3 text-center">Elims</th>
+            <th className="py-3 px-3 text-center">Total</th>
+          </tr>
+        </thead>
+        <tbody>
+          {standings.map((standing) => (
+            <tr 
+              key={standing.teamId} 
+              className={`border-b border-gray-700 ${standing.rank <= 8 ? "bg-blue-800/80" : "bg-blue-950/80"} text-white`}
+            >
+              <td className="py-3 px-3 font-bold text-center">#{standing.rank}</td>
+              <td className="py-3 px-3 font-medium flex items-center">
+                {standing.teamFlag && <span className="mr-2">{standing.teamFlag}</span>}
+                {standing.teamName}
+              </td>
+              <td className="py-3 px-3 text-center">{standing.wwcd}</td>
+              <td className="py-3 px-3 text-center">{standing.totalPlacementPoints}</td>
+              <td className="py-3 px-3 text-center">{standing.totalKills}</td>
+              <td className="py-3 px-3 text-center font-bold text-yellow-300">{standing.totalPoints}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+};
