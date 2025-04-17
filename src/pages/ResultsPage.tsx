@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import { useTournament } from "@/context/TournamentContext";
 import Layout from "@/components/layout/Layout";
@@ -20,14 +20,14 @@ const ResultsPage = () => {
   const [selectedMatch, setSelectedMatch] = useState<string | null>(null);
   
   // Select tournament if not already selected
-  React.useEffect(() => {
+  useEffect(() => {
     if (id && (!currentTournament || currentTournament.id !== id)) {
       selectTournament(id);
     }
   }, [id, currentTournament, selectTournament]);
 
   // Reset selected match when day changes
-  React.useEffect(() => {
+  useEffect(() => {
     setSelectedMatch(null);
   }, [selectedDay]);
 
@@ -103,7 +103,7 @@ const ResultsPage = () => {
               </Link>
               <div className="flex items-center">
                 <img 
-                  src="/public/lovable-uploads/208256eb-7194-493e-b6f2-1bb74a96f28d.png" 
+                  src="/lovable-uploads/208256eb-7194-493e-b6f2-1bb74a96f28d.png" 
                   alt="PUBG Mobile" 
                   className="h-8 mr-2" 
                 />
@@ -174,7 +174,10 @@ const ResultsPage = () => {
                 {selectedDay !== "all" && (
                   <div className="flex items-center space-x-4">
                     <div className="font-medium">Match:</div>
-                    <Select value={selectedMatch || "all"} onValueChange={setSelectedMatch}>
+                    <Select 
+                      value={selectedMatch || "all"} 
+                      onValueChange={(value) => setSelectedMatch(value === "all" ? null : value)}
+                    >
                       <SelectTrigger className="w-40">
                         <SelectValue placeholder="All Matches" />
                       </SelectTrigger>
