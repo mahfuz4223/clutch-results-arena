@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { useTournament } from "@/context/TournamentContext";
@@ -11,6 +12,7 @@ import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
 import { ChevronLeft, Plus, GripVertical, Edit, Trash2, Download } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList, CommandSeparator } from "@/components/ui/command";
+import { Input } from "@/components/ui/input";
 
 const MatchesPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -164,12 +166,11 @@ const MatchesPage = () => {
               <div className="space-y-4">
                 <div className="rounded-md border">
                   <div className="relative">
-                    <CommandInput
-                      type="search"
+                    <Input
                       placeholder="Search days..."
                       value={searchTerm}
-                      onValueChange={setSearchTerm}
-                      className="[&amp;::placeholder]:text-muted-foreground h-11 w-full rounded-md border-0 bg-transparent px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-sm focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="h-11 w-full rounded-md border-0 bg-transparent px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-sm focus-visible:outline-none"
                     />
                   </div>
                 </div>
