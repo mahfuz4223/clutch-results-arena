@@ -8,6 +8,7 @@ interface ResultCardHeaderProps {
   theme: ThemeOption;
   tournamentLogo?: string;
   showPubgLogo?: boolean;
+  selectedDay?: string;
 }
 
 const ResultCardHeader: React.FC<ResultCardHeaderProps> = ({
@@ -15,7 +16,8 @@ const ResultCardHeader: React.FC<ResultCardHeaderProps> = ({
   matchTitle,
   theme,
   tournamentLogo,
-  showPubgLogo = true
+  showPubgLogo = true,
+  selectedDay = "all"
 }) => {
   return (
     <div className="flex flex-col items-center justify-center pt-8 pb-4" style={{ 

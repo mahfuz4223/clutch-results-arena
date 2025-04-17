@@ -1,7 +1,6 @@
 
 import React, { useRef, useState } from "react";
 import { Team, Day, Match, ThemeOption } from "@/types";
-import { calculateOverallStandings } from "@/utils/pointCalculator";
 import { downloadAsImage, downloadAsPdf } from "./utils/downloadUtils";
 import ResultCardHeader from "./components/ResultCardHeader";
 import ResultCardFooter from "./components/ResultCardFooter";
@@ -108,10 +107,15 @@ const ResultCard: React.FC<ResultCardProps> = ({
             theme={theme}
             tournamentLogo={tournamentLogo}
             showPubgLogo={showPubgLogo}
+            selectedDay={selectedDay}
           />
 
           {/* Results Table */}
-          <StandingsContent standings={standings} theme={theme} />
+          <StandingsContent 
+            teams={teams} 
+            matches={matches} 
+            theme={theme} 
+          />
 
           {/* Footer */}
           <ResultCardFooter theme={theme} customFooterText={customFooterText} />

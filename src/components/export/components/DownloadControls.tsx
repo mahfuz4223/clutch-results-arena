@@ -1,7 +1,7 @@
 
 import React from "react";
 import { Button } from "@/components/ui/button";
-import { Download, FileImage, FilePdf } from "lucide-react";
+import { Download, FileImage, File } from "lucide-react";
 
 interface DownloadControlsProps {
   onDownloadImage: () => void;
@@ -27,7 +27,7 @@ const DownloadControls: React.FC<DownloadControlsProps> = ({
         onClick={onDownloadPdf}
         className="flex items-center"
       >
-        <FilePdf className="w-4 h-4 mr-2" />
+        <File className="w-4 h-4 mr-2" />
         Download as PDF
       </Button>
     </div>

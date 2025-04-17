@@ -1,14 +1,19 @@
 
 import React from "react";
-import { TeamStanding } from "../types/standings";
 import { ThemeOption } from "@/types";
+import { calculateOverallStandings } from "@/utils/pointCalculator";
+import { Team, Match } from "@/types";
 
 interface StandingsContentProps {
-  standings: TeamStanding[];
+  teams: Team[];
+  matches: Match[];
   theme: ThemeOption;
 }
 
-const StandingsContent: React.FC<StandingsContentProps> = ({ standings, theme }) => {
+const StandingsContent: React.FC<StandingsContentProps> = ({ teams, matches, theme }) => {
+  // Calculate standings
+  const standings = calculateOverallStandings(teams, matches);
+  
   // Split standings into two columns
   const halfIndex = Math.ceil(standings.length / 2);
   const leftColumnStandings = standings.slice(0, halfIndex);
@@ -31,11 +36,9 @@ const StandingsContent: React.FC<StandingsContentProps> = ({ standings, theme })
   );
 };
 
-export default StandingsContent;
-
 // StandingsTable Component
 interface StandingsTableProps {
-  standings: TeamStanding[];
+  standings: any[];
   theme: ThemeOption;
 }
 
@@ -75,3 +78,5 @@ const StandingsTable: React.FC<StandingsTableProps> = ({ standings, theme }) => 
     </div>
   );
 };
+
+export default StandingsContent;
