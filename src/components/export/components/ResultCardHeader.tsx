@@ -23,16 +23,16 @@ const ResultCardHeader: React.FC<ResultCardHeaderProps> = ({
     <div className="flex flex-col items-center justify-center pt-8 pb-4" style={{ 
       background: "linear-gradient(to bottom, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0.4) 100%)" 
     }}>
-      <div className="flex items-center mb-2">
+      <div className="flex items-center justify-center mb-2">
         {showPubgLogo && (
           <img 
-            src="/lovable-uploads/6edad5ac-54a3-4f33-9b83-9e1679eecec0.png" 
+            src="/lovable-uploads/bb077b02-12df-4f5f-bc07-bfade01b67dd.png" 
             alt="PUBG Mobile" 
-            className="h-16 mr-4" 
+            className="h-20 object-contain mr-4" 
           />
         )}
         {tournamentLogo && (
-          <img src={tournamentLogo} alt="Tournament Logo" className="h-16 mr-4 object-contain" />
+          <img src={tournamentLogo} alt="Tournament Logo" className="h-16 object-contain mr-4" />
         )}
         <div>
           <h1 className="text-3xl font-bold uppercase text-white">{tournament}</h1>

@@ -10,7 +10,7 @@ import OverallStandings from "@/components/results/OverallStandings";
 import ResultsTable from "@/components/results/ResultsTable";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ChevronLeft, BarChart3, Download } from "lucide-react";
+import { ChevronLeft, BarChart3, Download, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 const ResultsPage = () => {
@@ -18,6 +18,7 @@ const ResultsPage = () => {
   const { selectTournament, currentTournament } = useTournament();
   const [selectedDay, setSelectedDay] = useState<string>("all");
   const [selectedMatch, setSelectedMatch] = useState<string | null>(null);
+  const [isExporting, setIsExporting] = useState(false);
   
   // Select tournament if not already selected
   useEffect(() => {
@@ -36,6 +37,8 @@ const ResultsPage = () => {
     if (!currentTournament) return;
     
     try {
+      setIsExporting(true);
+      
       const data = {
         tournamentName: currentTournament.name,
         tournamentId: currentTournament.id,
@@ -70,6 +73,8 @@ const ResultsPage = () => {
     } catch (error) {
       console.error("Error exporting results:", error);
       toast.error("Failed to export results");
+    } finally {
+      setIsExporting(false);
     }
   };
 
@@ -110,7 +115,7 @@ const ResultsPage = () => {
               </Link>
               <div className="flex items-center">
                 <img 
-                  src="/lovable-uploads/208256eb-7194-493e-b6f2-1bb74a96f28d.png" 
+                  src="/lovable-uploads/bb077b02-12df-4f5f-bc07-bfade01b67dd.png" 
                   alt="PUBG Mobile" 
                   className="h-8 mr-2" 
                 />
@@ -125,8 +130,13 @@ const ResultsPage = () => {
               variant="outline" 
               className="flex items-center gap-2"
               onClick={exportResults}
+              disabled={isExporting}
             >
-              <Download className="h-4 w-4" />
+              {isExporting ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Download className="h-4 w-4" />
+              )}
               Export JSON
             </Button>
             

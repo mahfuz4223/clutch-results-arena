@@ -14,14 +14,15 @@ export const downloadAsImage = (
   }
   
   // Add a small delay to ensure the element is fully rendered
-  return new Promise((resolve) => setTimeout(resolve, 100))
+  return new Promise((resolve) => setTimeout(resolve, 300))
     .then(() => toPng(element, { 
       quality: 0.95,
-      pixelRatio: 2 
+      pixelRatio: 2,
+      cacheBust: true
     }))
     .then((dataUrl) => {
       const link = document.createElement("a");
-      link.download = filename;
+      link.download = `${filename}.png`;
       link.href = dataUrl;
       document.body.appendChild(link);
       link.click();
@@ -41,16 +42,17 @@ export const downloadAsPdf = (
   }
   
   // Add a small delay to ensure the element is fully rendered
-  return new Promise((resolve) => setTimeout(resolve, 100))
+  return new Promise((resolve) => setTimeout(resolve, 300))
     .then(() => toPng(element, { 
       quality: 0.95,
-      pixelRatio: 2 
+      pixelRatio: 2,
+      cacheBust: true
     }))
     .then((dataUrl) => {
       const pdf = new jsPDF({
         orientation: "landscape",
         unit: "px",
-        format: [1000, 720],
+        format: [1020, 740],
         hotfixes: ["px_scaling"]
       });
       
@@ -60,6 +62,6 @@ export const downloadAsPdf = (
       const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
       
       pdf.addImage(dataUrl, "PNG", 0, 0, pdfWidth, pdfHeight);
-      pdf.save(filename);
+      pdf.save(`${filename}.pdf`);
     });
 };

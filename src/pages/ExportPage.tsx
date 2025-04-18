@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { useTournament } from "@/context/TournamentContext";
@@ -18,22 +17,33 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
 import { Slider } from "@/components/ui/slider";
+import { toast } from "sonner";
 
 const PRESET_BACKGROUNDS = [
+  { 
+    id: "parachute", 
+    name: "Parachuting", 
+    url: "/lovable-uploads/e7add741-4852-48db-89bb-52c3dd8d4a1a.png" 
+  },
+  { 
+    id: "pubg-logo", 
+    name: "PUBG Logo", 
+    url: "/lovable-uploads/df7669b7-5636-40c7-9273-9aecbd65db00.png" 
+  },
   { 
     id: "erangel", 
     name: "Erangel Map", 
     url: "/lovable-uploads/6596d994-4323-45a5-9ad1-f195654e5e6f.png" 
   },
   { 
-    id: "parachute", 
-    name: "Parachuting", 
-    url: "/lovable-uploads/12d2c8eb-c515-4e23-a4e0-4f4c7a547c54.png" 
+    id: "battlegrounds", 
+    name: "Battlegrounds", 
+    url: "/lovable-uploads/effd7055-1750-4d73-97f0-70d8c6fd59e8.png" 
   },
   { 
-    id: "pubg-logo", 
-    name: "PUBG Logo", 
-    url: "/lovable-uploads/537d9a50-477b-4c4c-9ef5-cacde5251121.png" 
+    id: "player", 
+    name: "PUBG Player", 
+    url: "/lovable-uploads/e7482a5f-845f-4813-86b5-8bf37a3874b9.png" 
   },
   { 
     id: "blue-gradient", 
@@ -60,7 +70,7 @@ const ExportPage = () => {
   const [showPubgLogo, setShowPubgLogo] = useState(true);
   const [customFooterText, setCustomFooterText] = useState("Generated with TournaNext");
   const [customCss, setCustomCss] = useState("");
-  
+
   React.useEffect(() => {
     if (id && (!currentTournament || currentTournament.id !== id)) {
       selectTournament(id);
@@ -74,6 +84,7 @@ const ExportPage = () => {
       reader.onloadend = () => {
         if (typeof reader.result === 'string') {
           setLogoUrl(reader.result);
+          toast.success("Logo uploaded successfully");
         }
       };
       reader.readAsDataURL(file);
@@ -87,6 +98,7 @@ const ExportPage = () => {
       reader.onloadend = () => {
         if (typeof reader.result === 'string') {
           setBackgroundUrl(reader.result);
+          toast.success("Background uploaded successfully");
         }
       };
       reader.readAsDataURL(file);
@@ -99,6 +111,47 @@ const ExportPage = () => {
   
   const handleSelectPresetBackground = (url: string) => {
     setBackgroundUrl(url);
+  };
+
+  const exportResults = () => {
+    if (!currentTournament) return;
+    
+    try {
+      const data = {
+        tournamentName: currentTournament.name,
+        tournamentId: currentTournament.id,
+        days: currentTournament.days.map(day => ({
+          id: day.id,
+          name: day.name,
+          matches: day.matches.map(match => ({
+            id: match.id,
+            name: match.name,
+            results: match.results
+          }))
+        })),
+        teams: currentTournament.teams.map(team => ({
+          id: team.id,
+          name: team.name,
+          flag: team.flag
+        }))
+      };
+      
+      const jsonString = JSON.stringify(data, null, 2);
+      const blob = new Blob([jsonString], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${currentTournament.name.replace(/\s+/g, '-').toLowerCase()}-results.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      
+      toast.success("Results exported successfully!");
+    } catch (error) {
+      console.error("Error exporting results:", error);
+      toast.error("Failed to export results");
+    }
   };
 
   if (!currentTournament) {

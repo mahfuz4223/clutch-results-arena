@@ -29,7 +29,7 @@ const ResultCardFooter: React.FC<ResultCardFooterProps> = ({
       <div className="flex justify-between items-center p-3 bg-black text-white text-xs">
         <div className="flex items-center">
           <img 
-            src="/lovable-uploads/6edad5ac-54a3-4f33-9b83-9e1679eecec0.png" 
+            src="/lovable-uploads/bb077b02-12df-4f5f-bc07-bfade01b67dd.png" 
             alt="PUBG Mobile" 
             className="h-6 mr-2" 
           />

@@ -1,5 +1,5 @@
 
-import React, { useRef, useState } from "react";
+import React, { useRef } from "react";
 import { Team, Day, Match, ThemeOption } from "@/types";
 import { downloadAsImage, downloadAsPdf } from "./utils/downloadUtils";
 import ResultCardHeader from "./components/ResultCardHeader";
@@ -37,8 +37,7 @@ const ResultCard: React.FC<ResultCardProps> = ({
   customFooterText = "Generated with TournaNext"
 }) => {
   const cardRef = useRef<HTMLDivElement>(null);
-  const [bgOpacity, setBgOpacity] = useState(0.2);
-
+  
   // Get day title
   const dayTitle = selectedDay === "all" 
     ? "OVERALL STANDINGS" 
@@ -56,23 +55,19 @@ const ResultCard: React.FC<ResultCardProps> = ({
     : dayTitle;
 
   // Function to download the image
-  const handleDownloadImage = () => {
-    downloadAsImage(
+  const handleDownloadImage = async () => {
+    return downloadAsImage(
       cardRef.current, 
-      `${tournament}-${matchTitle.replace(/\s+/g, "-").toLowerCase()}.png`
-    ).catch((error) => {
-      console.error("Error generating image:", error);
-    });
+      `${tournament}-${matchTitle.replace(/\s+/g, "-").toLowerCase()}`
+    );
   };
 
   // Function to download as PDF
-  const handleDownloadPdf = () => {
-    downloadAsPdf(
+  const handleDownloadPdf = async () => {
+    return downloadAsPdf(
       cardRef.current, 
-      `${tournament}-${matchTitle.replace(/\s+/g, "-").toLowerCase()}.pdf`
-    ).catch((error) => {
-      console.error("Error generating PDF:", error);
-    });
+      `${tournament}-${matchTitle.replace(/\s+/g, "-").toLowerCase()}`
+    );
   };
 
   // Apply custom CSS if provided
@@ -93,7 +88,7 @@ const ResultCard: React.FC<ResultCardProps> = ({
               backgroundImage: `url(${backgroundImage})`,
               backgroundSize: 'cover',
               backgroundPosition: 'center',
-              opacity: bgOpacity
+              opacity: backgroundImage.includes('/lovable-uploads/') ? 0.3 : 0.2
             }}
           />
         )}
