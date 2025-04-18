@@ -18,12 +18,14 @@ import ExportPage from "./pages/ExportPage";
 import AuthPage from "./pages/AuthPage";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 
-// Create a new QueryClient instance
+// Create a stable QueryClient with optimized configuration
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       retry: 1,
       refetchOnWindowFocus: false,
+      staleTime: 5 * 60 * 1000, // 5 minutes
+      cacheTime: 10 * 60 * 1000, // 10 minutes
     },
   },
 });
@@ -48,6 +50,8 @@ const App = () => (
               <Route path="/tournament/:id/matches" element={<ProtectedRoute><MatchesPage /></ProtectedRoute>} />
               <Route path="/tournament/:id/results" element={<ProtectedRoute><ResultsPage /></ProtectedRoute>} />
               <Route path="/tournament/:id/export" element={<ProtectedRoute><ExportPage /></ProtectedRoute>} />
+              
+              {/* Fallback route */}
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>

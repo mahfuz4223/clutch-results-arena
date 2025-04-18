@@ -13,7 +13,6 @@ export const downloadAsImage = (
     return Promise.reject(new Error("Element not found"));
   }
   
-  // Add a delay to ensure the element is fully rendered
   return new Promise((resolve) => setTimeout(resolve, 500))
     .then(() => toPng(element, { 
       quality: 0.95,
@@ -40,7 +39,6 @@ export const downloadAsPdf = (
     return Promise.reject(new Error("Element not found"));
   }
   
-  // Add a delay to ensure the element is fully rendered
   return new Promise((resolve) => setTimeout(resolve, 500))
     .then(() => toPng(element, { 
       quality: 0.95,
@@ -56,7 +54,6 @@ export const downloadAsPdf = (
         hotfixes: ["px_scaling"]
       });
       
-      // Calculate the PDF dimensions to maintain aspect ratio
       const imgProps = pdf.getImageProperties(dataUrl);
       const pdfWidth = pdf.internal.pageSize.getWidth();
       const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
