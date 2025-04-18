@@ -23,7 +23,7 @@ const DownloadControls: React.FC<DownloadControlsProps> = ({
       toast.success("Image downloaded successfully");
     } catch (error) {
       console.error("Error downloading image:", error);
-      toast.error("Failed to download image");
+      toast.error("Failed to download image. Please try again.");
     } finally {
       setIsDownloadingImage(false);
     }
@@ -36,7 +36,7 @@ const DownloadControls: React.FC<DownloadControlsProps> = ({
       toast.success("PDF downloaded successfully");
     } catch (error) {
       console.error("Error downloading PDF:", error);
-      toast.error("Failed to download PDF");
+      toast.error("Failed to download PDF. Please try again.");
     } finally {
       setIsDownloadingPdf(false);
     }

@@ -13,20 +13,19 @@ export const downloadAsImage = (
     return Promise.reject(new Error("Element not found"));
   }
   
-  // Add a small delay to ensure the element is fully rendered
-  return new Promise((resolve) => setTimeout(resolve, 300))
+  // Add a delay to ensure the element is fully rendered
+  return new Promise((resolve) => setTimeout(resolve, 500))
     .then(() => toPng(element, { 
       quality: 0.95,
       pixelRatio: 2,
-      cacheBust: true
+      cacheBust: true,
+      skipAutoScale: true
     }))
     .then((dataUrl) => {
       const link = document.createElement("a");
       link.download = `${filename}.png`;
       link.href = dataUrl;
-      document.body.appendChild(link);
       link.click();
-      document.body.removeChild(link);
     });
 };
 
@@ -41,12 +40,13 @@ export const downloadAsPdf = (
     return Promise.reject(new Error("Element not found"));
   }
   
-  // Add a small delay to ensure the element is fully rendered
-  return new Promise((resolve) => setTimeout(resolve, 300))
+  // Add a delay to ensure the element is fully rendered
+  return new Promise((resolve) => setTimeout(resolve, 500))
     .then(() => toPng(element, { 
       quality: 0.95,
       pixelRatio: 2,
-      cacheBust: true
+      cacheBust: true,
+      skipAutoScale: true
     }))
     .then((dataUrl) => {
       const pdf = new jsPDF({

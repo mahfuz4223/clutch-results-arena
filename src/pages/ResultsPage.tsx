@@ -149,6 +149,7 @@ const ResultsPage = () => {
           </div>
         </div>
 
+        {/* No teams message */}
         {currentTournament.teams.length === 0 ? (
           <Card>
             <CardContent className="p-8 text-center">

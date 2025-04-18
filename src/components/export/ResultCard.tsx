@@ -70,12 +70,9 @@ const ResultCard: React.FC<ResultCardProps> = ({
     );
   };
 
-  // Apply custom CSS if provided
-  const customStyle = customCss ? { dangerouslySetInnerHTML: { __html: customCss } } : {};
-  
   return (
     <div className="relative">
-      <style {...customStyle} />
+      {customCss && <style dangerouslySetInnerHTML={{ __html: customCss }} />}
       <div 
         ref={cardRef}
         className={`w-[1000px] h-[720px] rounded-lg overflow-hidden shadow-xl ${theme.background} relative`}
@@ -88,7 +85,7 @@ const ResultCard: React.FC<ResultCardProps> = ({
               backgroundImage: `url(${backgroundImage})`,
               backgroundSize: 'cover',
               backgroundPosition: 'center',
-              opacity: backgroundImage.includes('/lovable-uploads/') ? 0.3 : 0.2
+              opacity: 0.3
             }}
           />
         )}

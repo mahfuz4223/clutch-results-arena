@@ -46,7 +46,7 @@ const StandingsTable: React.FC<StandingsTableProps> = ({ standings, theme }) => 
   return (
     <div className="rounded-md overflow-hidden">
       <table className="w-full border-collapse">
-        <thead className="text-sm uppercase bg-blue-900 text-white">
+        <thead className={`text-sm uppercase ${theme.headerBg} text-white`}>
           <tr>
             <th className="py-3 px-3 text-left">#</th>
             <th className="py-3 px-3 text-left">Team</th>
@@ -60,7 +60,7 @@ const StandingsTable: React.FC<StandingsTableProps> = ({ standings, theme }) => 
           {standings.map((standing) => (
             <tr 
               key={standing.teamId} 
-              className={`border-b border-gray-700 ${standing.rank <= 8 ? "bg-blue-800/80" : "bg-blue-950/80"} text-white`}
+              className={`border-b ${theme.borderColor} ${standing.rank <= 8 ? `${theme.tableBg}` : `${theme.tableBg}`} text-white`}
             >
               <td className="py-3 px-3 font-bold text-center">#{standing.rank}</td>
               <td className="py-3 px-3 font-medium flex items-center">
