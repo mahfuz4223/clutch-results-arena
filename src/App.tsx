@@ -18,7 +18,15 @@ import ExportPage from "./pages/ExportPage";
 import AuthPage from "./pages/AuthPage";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 
-const queryClient = new QueryClient();
+// Create a new QueryClient instance
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 1,
+      refetchOnWindowFocus: false,
+    },
+  },
+});
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -26,7 +34,7 @@ const App = () => (
       <AuthProvider>
         <TournamentProvider>
           <Toaster />
-          <Sonner />
+          <Sonner position="top-right" />
           <BrowserRouter>
             <Routes>
               <Route path="/" element={<Index />} />
