@@ -25,9 +25,9 @@ const OverallStandings: React.FC<OverallStandingsProps> = ({
   const standings = calculateOverallStandings(teams, matches);
 
   return (
-    <div className={`overflow-x-auto ${className}`}>
+    <div className={`overflow-x-auto rounded-lg ${className}`}>
       <table className="w-full text-sm text-left">
-        <thead className="text-xs uppercase">
+        <thead className="text-xs uppercase tracking-wider">
           <tr>
             <th scope="col" className="px-3 py-3">Rank</th>
             <th scope="col" className="px-3 py-3">Team</th>
@@ -38,9 +38,9 @@ const OverallStandings: React.FC<OverallStandingsProps> = ({
           </tr>
         </thead>
         <tbody>
-          {standings.map((standing) => (
-            <tr key={standing.teamId} className="border-b">
-              <td className="px-3 py-2 font-medium">#{standing.rank}</td>
+          {standings.map((standing, index) => (
+            <tr key={standing.teamId} className={`border-b transition-colors ${index < 3 ? "font-medium" : ""}`}>
+              <td className="px-3 py-2 font-bold">#{standing.rank}</td>
               <td className="px-3 py-2 font-medium flex items-center">
                 {standing.teamFlag && <span className="mr-2">{standing.teamFlag}</span>}
                 {standing.teamName}

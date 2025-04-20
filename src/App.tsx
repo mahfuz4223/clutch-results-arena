@@ -6,6 +6,9 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { TournamentProvider } from "@/context/TournamentContext";
 import { AuthProvider } from "@/context/AuthContext";
+import { useState } from "react";
+
+// Pages
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import Tournaments from "./pages/Tournaments";
@@ -18,35 +21,47 @@ import ExportPage from "./pages/ExportPage";
 import AuthPage from "./pages/AuthPage";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 
-const queryClient = new QueryClient();
+const App = () => {
+  // Create a new QueryClient instance with updated configurations
+  const [queryClient] = useState(() => new QueryClient({
+    defaultOptions: {
+      queries: {
+        gcTime: 5 * 60 * 1000, // 5 minutes (replaces cacheTime)
+        staleTime: 0,
+        retry: 1,
+        refetchOnWindowFocus: false
+      },
+    },
+  }));
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <AuthProvider>
-        <TournamentProvider>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
-            <Routes>
-              <Route path="/" element={<Index />} />
-              <Route path="/auth" element={<AuthPage />} />
-              
-              {/* Protected Routes */}
-              <Route path="/tournaments" element={<ProtectedRoute><Tournaments /></ProtectedRoute>} />
-              <Route path="/create" element={<ProtectedRoute><CreateTournament /></ProtectedRoute>} />
-              <Route path="/tournament/:id" element={<ProtectedRoute><TournamentDashboard /></ProtectedRoute>} />
-              <Route path="/tournament/:id/teams" element={<ProtectedRoute><TeamsPage /></ProtectedRoute>} />
-              <Route path="/tournament/:id/matches" element={<ProtectedRoute><MatchesPage /></ProtectedRoute>} />
-              <Route path="/tournament/:id/results" element={<ProtectedRoute><ResultsPage /></ProtectedRoute>} />
-              <Route path="/tournament/:id/export" element={<ProtectedRoute><ExportPage /></ProtectedRoute>} />
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </BrowserRouter>
-        </TournamentProvider>
-      </AuthProvider>
-    </TooltipProvider>
-  </QueryClientProvider>
-);
+  return (
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <AuthProvider>
+          <TournamentProvider>
+            <Toaster />
+            <Sonner />
+            <BrowserRouter>
+              <Routes>
+                <Route path="/" element={<Index />} />
+                <Route path="/auth" element={<AuthPage />} />
+                
+                {/* Protected Routes */}
+                <Route path="/tournaments" element={<ProtectedRoute><Tournaments /></ProtectedRoute>} />
+                <Route path="/create" element={<ProtectedRoute><CreateTournament /></ProtectedRoute>} />
+                <Route path="/tournament/:id" element={<ProtectedRoute><TournamentDashboard /></ProtectedRoute>} />
+                <Route path="/tournament/:id/teams" element={<ProtectedRoute><TeamsPage /></ProtectedRoute>} />
+                <Route path="/tournament/:id/matches" element={<ProtectedRoute><MatchesPage /></ProtectedRoute>} />
+                <Route path="/tournament/:id/results" element={<ProtectedRoute><ResultsPage /></ProtectedRoute>} />
+                <Route path="/tournament/:id/export" element={<ProtectedRoute><ExportPage /></ProtectedRoute>} />
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </BrowserRouter>
+          </TournamentProvider>
+        </AuthProvider>
+      </TooltipProvider>
+    </QueryClientProvider>
+  );
+};
 
 export default App;

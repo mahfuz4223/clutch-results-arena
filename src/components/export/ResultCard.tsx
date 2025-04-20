@@ -4,7 +4,7 @@ import { Team, Day, Match, ThemeOption } from "@/types";
 import { calculateOverallStandings } from "@/utils/pointCalculator";
 import { toPng } from "html-to-image";
 import { Button } from "@/components/ui/button";
-import { Download } from "lucide-react";
+import { Download, Share2 } from "lucide-react";
 
 interface ResultCardProps {
   tournament: string;
@@ -49,7 +49,7 @@ const ResultCard: React.FC<ResultCardProps> = ({
   // Function to download the image
   const downloadImage = () => {
     if (cardRef.current) {
-      toPng(cardRef.current)
+      toPng(cardRef.current, { quality: 0.95 })
         .then((dataUrl) => {
           const link = document.createElement("a");
           link.download = `${tournament}-${matchTitle.replace(/\s+/g, "-").toLowerCase()}.png`;
@@ -71,39 +71,75 @@ const ResultCard: React.FC<ResultCardProps> = ({
     <div className="relative">
       <div 
         ref={cardRef}
-        className={`w-[1000px] h-[720px] rounded-lg overflow-hidden shadow-xl ${theme.background}`}
+        className={`w-[1000px] h-[720px] rounded-lg overflow-hidden shadow-xl ${theme.background} relative`}
+        style={{ 
+          backgroundImage: `linear-gradient(to bottom, rgba(0,0,0,0.7), rgba(0,0,0,0.8)), url('/public/lovable-uploads/5f1092b1-01ef-4ee7-b8b1-4ff4c96c00b1.png')`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          backgroundBlendMode: 'overlay'
+        }}
       >
+        {/* Top Right Corner Logo */}
+        <div className="absolute top-5 right-5 h-16">
+          <img 
+            src="/public/lovable-uploads/bbd6b8ea-bb1e-4972-b550-d9f1b82ce551.png" 
+            alt="PUBG Logo" 
+            className="h-full object-contain"
+          />
+        </div>
+        
+        {/* Left Side Character */}
+        <div className="absolute bottom-0 left-0 h-52 opacity-80 z-0 hidden md:block">
+          <img 
+            src="/public/lovable-uploads/c774f54c-53d5-40d5-92ad-cbaa38bf1e99.png" 
+            alt="PUBG Character" 
+            className="h-full object-contain"
+          />
+        </div>
+
         {/* Header */}
-        <div className="flex flex-col items-center justify-center pt-10 pb-6">
+        <div className="flex flex-col items-center justify-center pt-10 pb-6 relative z-10">
           <div className="flex items-center mb-2">
-            <img src="/public/lovable-uploads/fe3a6ee4-42e5-4918-94f9-1c5f9793fd70.png" alt="PUBG Mobile" className="h-16 mr-4" />
+            <img 
+              src="/public/lovable-uploads/bd54bf89-10e1-438a-8bda-917ff62a1e6d.png" 
+              alt="PUBG Mobile" 
+              className="h-16 mr-4"
+            />
             <div>
-              <h1 className={`text-3xl font-bold uppercase ${theme.textColor}`}>{tournament}</h1>
+              <h1 className={`text-3xl font-bold uppercase ${theme.textColor} drop-shadow-lg`}>{tournament}</h1>
               <div className={`h-1 w-full ${theme.accentColor} my-1 rounded-full`}></div>
             </div>
           </div>
-          <h2 className={`text-3xl font-bold uppercase ${theme.textColor} mt-3`}>{matchTitle}</h2>
+          <h2 className={`text-3xl font-bold uppercase ${theme.textColor} mt-3 tracking-wider drop-shadow-lg`}>{matchTitle}</h2>
         </div>
 
         {/* Results Table */}
-        <div className="px-8 pb-8">
-          <div className="flex justify-between">
+        <div className="px-8 pb-8 relative z-10">
+          <div className="flex justify-between gap-4">
             {/* Left Column */}
             <div className="w-[48%]">
               <table className={`w-full border-collapse ${theme.textColor}`}>
-                <thead className={`text-sm uppercase ${theme.headerBg}`}>
+                <thead className={`text-sm uppercase ${theme.headerBg} tracking-wider`}>
                   <tr>
                     <th className="py-3 px-2 text-left">#</th>
                     <th className="py-3 px-2 text-left">Team</th>
                     <th className="py-3 px-2 text-center">WWCD</th>
-                    <th className="py-3 px-2 text-center">Place Pts</th>
+                    <th className="py-3 px-2 text-center">Place</th>
                     <th className="py-3 px-2 text-center">Elims</th>
                     <th className="py-3 px-2 text-center">Total</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {leftColumnStandings.map((standing) => (
-                    <tr key={standing.teamId} className={`${theme.tableBg} border-b ${theme.borderColor}`}>
+                  {leftColumnStandings.map((standing, index) => (
+                    <tr 
+                      key={standing.teamId} 
+                      className={`
+                        ${theme.tableBg} border-b ${theme.borderColor}
+                        ${index === 0 ? "bg-yellow-900/30" : ""}
+                        ${index === 1 ? "bg-gray-500/20" : ""}
+                        ${index === 2 ? "bg-amber-800/20" : ""}
+                      `}
+                    >
                       <td className="py-3 px-2 font-bold">#{standing.rank}</td>
                       <td className="py-3 px-2 font-medium">
                         {standing.teamFlag && <span className="mr-2">{standing.teamFlag}</span>}
@@ -122,12 +158,12 @@ const ResultCard: React.FC<ResultCardProps> = ({
             {/* Right Column */}
             <div className="w-[48%]">
               <table className={`w-full border-collapse ${theme.textColor}`}>
-                <thead className={`text-sm uppercase ${theme.headerBg}`}>
+                <thead className={`text-sm uppercase ${theme.headerBg} tracking-wider`}>
                   <tr>
                     <th className="py-3 px-2 text-left">#</th>
                     <th className="py-3 px-2 text-left">Team</th>
                     <th className="py-3 px-2 text-center">WWCD</th>
-                    <th className="py-3 px-2 text-center">Place Pts</th>
+                    <th className="py-3 px-2 text-center">Place</th>
                     <th className="py-3 px-2 text-center">Elims</th>
                     <th className="py-3 px-2 text-center">Total</th>
                   </tr>
@@ -156,19 +192,47 @@ const ResultCard: React.FC<ResultCardProps> = ({
         <div className={`absolute bottom-0 left-0 right-0 flex justify-between items-center p-4 ${theme.headerBg}`}>
           <div className="text-sm text-white/70">© PUBG Mobile Tournament Maker</div>
           <div className="flex items-center">
-            <img src="/public/lovable-uploads/fe3a6ee4-42e5-4918-94f9-1c5f9793fd70.png" alt="PUBG Mobile" className="h-8 mr-2" />
+            <img src="/public/lovable-uploads/bd54bf89-10e1-438a-8bda-917ff62a1e6d.png" alt="PUBG Mobile" className="h-8 mr-2" />
             <span className="text-sm text-white/70">Generated with Tournament Maker</span>
           </div>
         </div>
       </div>
 
-      <Button 
-        onClick={downloadImage} 
-        className="mt-4 bg-blue-600 hover:bg-blue-700"
-      >
-        <Download className="w-4 h-4 mr-2" />
-        Download Image
-      </Button>
+      <div className="mt-4 flex space-x-2">
+        <Button 
+          onClick={downloadImage} 
+          className="bg-amber-600 hover:bg-amber-700"
+        >
+          <Download className="w-4 h-4 mr-2" />
+          Download Image
+        </Button>
+        
+        <Button 
+          onClick={() => {
+            if (cardRef.current) {
+              toPng(cardRef.current, { quality: 0.95 })
+                .then((dataUrl) => {
+                  try {
+                    navigator.clipboard.writeText(dataUrl);
+                    alert("Image copied to clipboard! You can paste it in other applications.");
+                  } catch (err) {
+                    const link = document.createElement("a");
+                    link.download = `${tournament}-${matchTitle.replace(/\s+/g, "-").toLowerCase()}.png`;
+                    link.href = dataUrl;
+                    link.click();
+                  }
+                })
+                .catch((error) => {
+                  console.error("Error generating image:", error);
+                });
+            }
+          }}
+          variant="outline"
+        >
+          <Share2 className="w-4 h-4 mr-2" />
+          Share
+        </Button>
+      </div>
     </div>
   );
 };

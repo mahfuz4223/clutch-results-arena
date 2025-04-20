@@ -3,6 +3,28 @@ import { ThemeOption } from "@/types";
 
 export const THEME_OPTIONS: ThemeOption[] = [
   {
+    id: "pubg-classic",
+    name: "PUBG Classic",
+    background: "bg-gradient-to-br from-gray-900 to-blue-900",
+    textColor: "text-white",
+    accentColor: "bg-yellow-500",
+    headerBg: "bg-black/80",
+    tableBg: "bg-gray-900/80",
+    borderColor: "border-yellow-600",
+    preview: "pubg-theme"
+  },
+  {
+    id: "battlegrounds",
+    name: "Battlegrounds",
+    background: "bg-gradient-to-br from-stone-800 to-stone-900",
+    textColor: "text-white",
+    accentColor: "bg-amber-500",
+    headerBg: "bg-black/90",
+    tableBg: "bg-black/70",
+    borderColor: "border-amber-700",
+    preview: "battlegrounds-theme"
+  },
+  {
     id: "blue-classic",
     name: "Blue Classic",
     background: "bg-gradient-to-br from-blue-700 to-blue-900",
