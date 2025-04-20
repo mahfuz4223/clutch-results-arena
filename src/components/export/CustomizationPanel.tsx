@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { THEME_OPTIONS, BACKGROUND_OPTIONS, CSS_PRESETS } from "@/utils/themes";
+import { Badge } from "@/components/ui/badge";
 
 interface CustomizationPanelProps {
   options: CustomizationOptions;
@@ -55,7 +56,10 @@ const CustomizationPanel: React.FC<CustomizationPanelProps> = ({
               >
                 <div className="flex items-center space-x-2">
                   <RadioGroupItem value="official" id="official" />
-                  <Label htmlFor="official">Official PUBG Style</Label>
+                  <Label htmlFor="official" className="flex items-center gap-2">
+                    Official PUBG Style
+                    <Badge variant="outline" className="bg-amber-500/10 text-amber-500 border-amber-500/20">Recommended</Badge>
+                  </Label>
                 </div>
                 <div className="flex items-center space-x-2">
                   <RadioGroupItem value="custom" id="custom" />
@@ -158,14 +162,13 @@ const CustomizationPanel: React.FC<CustomizationPanelProps> = ({
             <div className="space-y-3">
               <Label>CSS Style Presets</Label>
               <Select 
-                value={options.cssPreset} 
+                value={options.cssPreset || "none"} 
                 onValueChange={(value) => onChange({ cssPreset: value })}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select CSS Preset" />
                 </SelectTrigger>
                 <SelectContent>
-                  {/* Fixed: Changed empty string to "none" to avoid SelectItem with empty value */}
                   <SelectItem value="none">None (Custom CSS)</SelectItem>
                   {CSS_PRESETS.map(preset => (
                     <SelectItem key={preset.id} value={preset.id}>
@@ -181,12 +184,12 @@ const CustomizationPanel: React.FC<CustomizationPanelProps> = ({
               <Textarea 
                 placeholder="Enter custom CSS here"
                 className="font-mono text-xs h-32"
-                value={options.customCss}
-                disabled={!!options.cssPreset}
+                value={options.customCss || ""}
+                disabled={options.cssPreset !== "none" && !!options.cssPreset}
                 onChange={(e) => onChange({ customCss: e.target.value })}
               />
               <p className="text-xs text-muted-foreground">
-                {options.cssPreset 
+                {options.cssPreset && options.cssPreset !== "none" 
                   ? "Select 'None' in the CSS Preset dropdown to enable custom CSS" 
                   : "Enter custom CSS to style the result card. Classes like .result-card, .header-title, etc. are available."}
               </p>

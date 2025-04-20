@@ -4,7 +4,7 @@ import { Team, Day, Match, ThemeOption, CustomizationOptions } from "@/types";
 import { calculateOverallStandings } from "@/utils/pointCalculator";
 import { toPng } from "html-to-image";
 import { Button } from "@/components/ui/button";
-import { Download, Share2, Image } from "lucide-react";
+import { Download, Share2, FileDown } from "lucide-react";
 import { getBackgroundById, getCssPresetById } from "@/utils/themes";
 import { toast } from "sonner";
 
@@ -31,6 +31,7 @@ const ResultCard: React.FC<ResultCardProps> = ({
 }) => {
   const cardRef = useRef<HTMLDivElement>(null);
   const [customStyles, setCustomStyles] = useState<string>("");
+  const [isGenerating, setIsGenerating] = useState<boolean>(false);
 
   useEffect(() => {
     if (customization.cssPreset && customization.cssPreset !== "none") {
@@ -59,44 +60,71 @@ const ResultCard: React.FC<ResultCardProps> = ({
   // Calculate standings
   const standings = calculateOverallStandings(teams, matches);
 
-  // Function to download the image
-  const downloadImage = () => {
-    if (cardRef.current) {
-      toPng(cardRef.current, { quality: 0.95 })
-        .then((dataUrl) => {
-          const link = document.createElement("a");
-          link.download = `${tournament}-${matchTitle.replace(/\s+/g, "-").toLowerCase()}.png`;
-          link.href = dataUrl;
-          link.click();
-          toast.success("Image downloaded successfully!");
-        })
-        .catch((error) => {
-          console.error("Error generating image:", error);
-          toast.error("Failed to generate image. Please try again.");
-        });
+  // Function to download the image with improved error handling
+  const downloadImage = async () => {
+    if (!cardRef.current) {
+      toast.error("Could not find the results card to export");
+      return;
+    }
+    
+    setIsGenerating(true);
+    try {
+      const fileName = `${tournament}-${matchTitle.replace(/\s+/g, "-").toLowerCase()}.png`;
+      const options = { 
+        quality: 0.95,
+        backgroundColor: "#000000",
+        canvasWidth: 1000,
+        canvasHeight: 720,
+        skipAutoScale: true,
+      };
+      
+      const dataUrl = await toPng(cardRef.current, options);
+      
+      // Create a link and trigger download
+      const link = document.createElement("a");
+      link.download = fileName;
+      link.href = dataUrl;
+      link.click();
+      
+      toast.success("Image downloaded successfully!");
+    } catch (error) {
+      console.error("Error generating image:", error);
+      toast.error("Failed to generate image. Please try again later.");
+    } finally {
+      setIsGenerating(false);
     }
   };
 
   // Function to share/copy the image
-  const shareImage = () => {
-    if (cardRef.current) {
-      toPng(cardRef.current, { quality: 0.95 })
-        .then((dataUrl) => {
-          try {
-            navigator.clipboard.writeText(dataUrl);
-            toast.success("Image copied to clipboard! You can paste it in other applications.");
-          } catch (err) {
-            const link = document.createElement("a");
-            link.download = `${tournament}-${matchTitle.replace(/\s+/g, "-").toLowerCase()}.png`;
-            link.href = dataUrl;
-            link.click();
-            toast.success("Image downloaded successfully!");
-          }
-        })
-        .catch((error) => {
-          console.error("Error generating image:", error);
-          toast.error("Failed to generate image. Please try again.");
-        });
+  const shareImage = async () => {
+    if (!cardRef.current) {
+      toast.error("Could not find the results card to export");
+      return;
+    }
+    
+    setIsGenerating(true);
+    try {
+      const dataUrl = await toPng(cardRef.current, { 
+        quality: 0.95,
+        backgroundColor: "#000000",
+      });
+      
+      try {
+        await navigator.clipboard.writeText(dataUrl);
+        toast.success("Image copied to clipboard! You can paste it in other applications.");
+      } catch (err) {
+        // Fallback if clipboard API fails
+        const link = document.createElement("a");
+        link.download = `${tournament}-${matchTitle.replace(/\s+/g, "-").toLowerCase()}.png`;
+        link.href = dataUrl;
+        link.click();
+        toast.success("Image downloaded successfully!");
+      }
+    } catch (error) {
+      console.error("Error generating image:", error);
+      toast.error("Failed to generate image. Please try again.");
+    } finally {
+      setIsGenerating(false);
     }
   };
 
@@ -272,18 +300,20 @@ const ResultCard: React.FC<ResultCardProps> = ({
         </div>
       </div>
 
-      <div className="mt-4 flex space-x-2">
+      <div className="mt-4 flex flex-wrap gap-2">
         <Button 
           onClick={downloadImage} 
           className="bg-amber-600 hover:bg-amber-700"
+          disabled={isGenerating}
         >
           <Download className="w-4 h-4 mr-2" />
-          Download Image
+          {isGenerating ? "Generating..." : "Download Image"}
         </Button>
         
         <Button 
           onClick={shareImage}
           variant="outline"
+          disabled={isGenerating}
         >
           <Share2 className="w-4 h-4 mr-2" />
           Share
@@ -296,7 +326,7 @@ const ResultCard: React.FC<ResultCardProps> = ({
           }}
           variant="secondary"
         >
-          <Image className="w-4 h-4 mr-2" />
+          <FileDown className="w-4 h-4 mr-2" />
           Copy CSS
         </Button>
       </div>
