@@ -1,5 +1,5 @@
 
-import { toPng, Options } from 'html-to-image';
+import { toPng } from 'html-to-image';
 import { toast } from 'sonner';
 
 /**
@@ -8,7 +8,7 @@ import { toast } from 'sonner';
 export const exportElementAsImage = async (
   element: HTMLElement | null, 
   fileName: string,
-  options: Partial<Options> = {}
+  options: any = {}
 ): Promise<string | null> => {
   if (!element) {
     toast.error("Could not find element to export");
@@ -17,7 +17,7 @@ export const exportElementAsImage = async (
   
   try {
     // Default options
-    const exportOptions: Options = {
+    const exportOptions = {
       quality: 0.95,
       backgroundColor: "#000000",
       canvasWidth: 1000,

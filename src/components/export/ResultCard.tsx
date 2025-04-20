@@ -1,12 +1,13 @@
 
-import React, { useRef, useState, useEffect } from "react";
+import React, { useRef, useState } from "react";
 import { Team, Day, Match, ThemeOption, CustomizationOptions } from "@/types";
 import { calculateOverallStandings } from "@/utils/pointCalculator";
-import { toPng } from "html-to-image";
 import { Button } from "@/components/ui/button";
 import { Download, Share2, FileDown } from "lucide-react";
 import { getBackgroundById, getCssPresetById } from "@/utils/themes";
 import { toast } from "sonner";
+import { exportElementAsImage, downloadDataUrl } from "@/utils/imageExport";
+import { Badge } from "@/components/ui/badge";
 
 interface ResultCardProps {
   tournament: string;
@@ -33,7 +34,7 @@ const ResultCard: React.FC<ResultCardProps> = ({
   const [customStyles, setCustomStyles] = useState<string>("");
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
 
-  useEffect(() => {
+  React.useEffect(() => {
     if (customization.cssPreset && customization.cssPreset !== "none") {
       setCustomStyles(getCssPresetById(customization.cssPreset));
     } else {
@@ -62,31 +63,14 @@ const ResultCard: React.FC<ResultCardProps> = ({
 
   // Function to download the image with improved error handling
   const downloadImage = async () => {
-    if (!cardRef.current) {
-      toast.error("Could not find the results card to export");
-      return;
-    }
-    
     setIsGenerating(true);
     try {
       const fileName = `${tournament}-${matchTitle.replace(/\s+/g, "-").toLowerCase()}.png`;
-      const options = { 
-        quality: 0.95,
-        backgroundColor: "#000000",
-        canvasWidth: 1000,
-        canvasHeight: 720,
-        skipAutoScale: true,
-      };
       
-      const dataUrl = await toPng(cardRef.current, options);
-      
-      // Create a link and trigger download
-      const link = document.createElement("a");
-      link.download = fileName;
-      link.href = dataUrl;
-      link.click();
-      
-      toast.success("Image downloaded successfully!");
+      const dataUrl = await exportElementAsImage(cardRef.current, fileName);
+      if (dataUrl) {
+        downloadDataUrl(dataUrl, fileName);
+      }
     } catch (error) {
       console.error("Error generating image:", error);
       toast.error("Failed to generate image. Please try again later.");
@@ -97,17 +81,14 @@ const ResultCard: React.FC<ResultCardProps> = ({
 
   // Function to share/copy the image
   const shareImage = async () => {
-    if (!cardRef.current) {
-      toast.error("Could not find the results card to export");
-      return;
-    }
-    
     setIsGenerating(true);
     try {
-      const dataUrl = await toPng(cardRef.current, { 
-        quality: 0.95,
-        backgroundColor: "#000000",
-      });
+      const dataUrl = await exportElementAsImage(cardRef.current, "result-image");
+      
+      if (!dataUrl) {
+        toast.error("Failed to generate image. Please try again.");
+        return;
+      }
       
       try {
         await navigator.clipboard.writeText(dataUrl);
@@ -303,10 +284,10 @@ const ResultCard: React.FC<ResultCardProps> = ({
       <div className="mt-4 flex flex-wrap gap-2">
         <Button 
           onClick={downloadImage} 
-          className="bg-amber-600 hover:bg-amber-700"
+          className="bg-amber-600 hover:bg-amber-700 flex items-center gap-2"
           disabled={isGenerating}
         >
-          <Download className="w-4 h-4 mr-2" />
+          <Download className="w-4 h-4" />
           {isGenerating ? "Generating..." : "Download Image"}
         </Button>
         
@@ -314,8 +295,9 @@ const ResultCard: React.FC<ResultCardProps> = ({
           onClick={shareImage}
           variant="outline"
           disabled={isGenerating}
+          className="flex items-center gap-2"
         >
-          <Share2 className="w-4 h-4 mr-2" />
+          <Share2 className="w-4 h-4" />
           Share
         </Button>
         
@@ -325,10 +307,18 @@ const ResultCard: React.FC<ResultCardProps> = ({
             toast.success("CSS copied to clipboard!");
           }}
           variant="secondary"
+          className="flex items-center gap-2"
         >
-          <FileDown className="w-4 h-4 mr-2" />
+          <FileDown className="w-4 h-4" />
           Copy CSS
         </Button>
+      </div>
+      
+      {/* Help Badge */}
+      <div className="mt-3">
+        <Badge variant="outline" className="bg-black/5">
+          Having troubles? Try downloading in a different browser if the image doesn't generate.
+        </Badge>
       </div>
     </div>
   );
