@@ -1,5 +1,5 @@
 
-import React, { useRef, useState } from "react";
+import React, { useRef, useState, useEffect } from "react";
 import { Team, Day, Match, ThemeOption, CustomizationOptions } from "@/types";
 import { calculateOverallStandings } from "@/utils/pointCalculator";
 import { Button } from "@/components/ui/button";
@@ -33,8 +33,9 @@ const ResultCard: React.FC<ResultCardProps> = ({
   const cardRef = useRef<HTMLDivElement>(null);
   const [customStyles, setCustomStyles] = useState<string>("");
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
+  const [imageDataUrl, setImageDataUrl] = useState<string | null>(null);
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (customization.cssPreset && customization.cssPreset !== "none") {
       setCustomStyles(getCssPresetById(customization.cssPreset));
     } else {
@@ -61,32 +62,70 @@ const ResultCard: React.FC<ResultCardProps> = ({
   // Calculate standings
   const standings = calculateOverallStandings(teams, matches);
 
-  // Function to download the image with improved error handling
-  const downloadImage = async () => {
+  // Function to generate the image
+  const generateImage = async (): Promise<string | null> => {
     setIsGenerating(true);
+    setImageDataUrl(null);
+    
     try {
-      const fileName = `${tournament}-${matchTitle.replace(/\s+/g, "-").toLowerCase()}.png`;
+      if (!cardRef.current) {
+        toast.error("Failed to find the element to export");
+        return null;
+      }
       
-      const dataUrl = await exportElementAsImage(cardRef.current, fileName);
+      console.log("Generating image...");
+      
+      // Wait a moment to ensure the component is fully rendered
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      const fileName = `${tournament}-${matchTitle.replace(/\s+/g, "-").toLowerCase()}.png`;
+      const dataUrl = await exportElementAsImage(cardRef.current, fileName, {
+        backgroundColor: "#000000",
+        style: {
+          transform: 'scale(1)',
+          transformOrigin: 'top left',
+          width: `${cardRef.current.offsetWidth}px`,
+          height: `${cardRef.current.offsetHeight}px`
+        }
+      });
+      
       if (dataUrl) {
-        downloadDataUrl(dataUrl, fileName);
+        setImageDataUrl(dataUrl);
+        console.log("Image generated successfully!");
+        return dataUrl;
+      } else {
+        console.error("Failed to generate image dataUrl");
+        return null;
       }
     } catch (error) {
-      console.error("Error generating image:", error);
-      toast.error("Failed to generate image. Please try again later.");
+      console.error("Error in generateImage:", error);
+      toast.error("Failed to generate image. Please try again");
+      return null;
     } finally {
       setIsGenerating(false);
     }
   };
 
+  // Function to download the image
+  const downloadImage = async () => {
+    try {
+      const dataUrl = imageDataUrl || await generateImage();
+      if (dataUrl) {
+        const fileName = `${tournament}-${matchTitle.replace(/\s+/g, "-").toLowerCase()}.png`;
+        downloadDataUrl(dataUrl, fileName);
+      }
+    } catch (error) {
+      console.error("Error downloading image:", error);
+      toast.error("Failed to download image. Please try again");
+    }
+  };
+
   // Function to share/copy the image
   const shareImage = async () => {
-    setIsGenerating(true);
     try {
-      const dataUrl = await exportElementAsImage(cardRef.current, "result-image");
+      const dataUrl = imageDataUrl || await generateImage();
       
       if (!dataUrl) {
-        toast.error("Failed to generate image. Please try again.");
         return;
       }
       
@@ -98,14 +137,14 @@ const ResultCard: React.FC<ResultCardProps> = ({
         const link = document.createElement("a");
         link.download = `${tournament}-${matchTitle.replace(/\s+/g, "-").toLowerCase()}.png`;
         link.href = dataUrl;
+        document.body.appendChild(link);
         link.click();
+        document.body.removeChild(link);
         toast.success("Image downloaded successfully!");
       }
     } catch (error) {
-      console.error("Error generating image:", error);
-      toast.error("Failed to generate image. Please try again.");
-    } finally {
-      setIsGenerating(false);
+      console.error("Error sharing image:", error);
+      toast.error("Failed to share image. Please try again");
     }
   };
 
@@ -312,14 +351,31 @@ const ResultCard: React.FC<ResultCardProps> = ({
           <FileDown className="w-4 h-4" />
           Copy CSS
         </Button>
+        
+        <Button
+          onClick={generateImage}
+          variant="outline"
+          disabled={isGenerating}
+          className="flex items-center gap-2"
+        >
+          {isGenerating ? "Generating..." : "Generate Preview"}
+        </Button>
       </div>
       
       {/* Help Badge */}
       <div className="mt-3">
         <Badge variant="outline" className="bg-black/5">
-          Having troubles? Try downloading in a different browser if the image doesn't generate.
+          Having troubles? Try clicking "Generate Preview" first, then "Download Image". Refresh the page if issues persist.
         </Badge>
       </div>
+      
+      {/* Preview image if available */}
+      {imageDataUrl && (
+        <div className="mt-4 border rounded p-4">
+          <h3 className="text-sm font-medium mb-2">Preview (Right-click to save if download button doesn't work)</h3>
+          <img src={imageDataUrl} alt="Generated Preview" className="max-w-full h-auto" />
+        </div>
+      )}
     </div>
   );
 };

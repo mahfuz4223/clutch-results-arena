@@ -16,18 +16,23 @@ export const exportElementAsImage = async (
   }
   
   try {
-    // Default options
+    // Default options with improved settings
     const exportOptions = {
       quality: 0.95,
       backgroundColor: "#000000",
-      canvasWidth: 1000,
-      canvasHeight: 720,
-      skipAutoScale: true,
+      canvasWidth: element.offsetWidth || 1000,
+      canvasHeight: element.offsetHeight || 720,
+      skipAutoScale: false,
+      pixelRatio: 2, // Higher quality
       ...options
     };
     
+    console.log("Starting image generation with options:", exportOptions);
+    console.log("Element dimensions:", element.offsetWidth, "x", element.offsetHeight);
+    
     // Generate the image
     const dataUrl = await toPng(element, exportOptions);
+    console.log("Image generated successfully");
     return dataUrl;
   } catch (error) {
     console.error("Error generating image:", error);
@@ -40,9 +45,16 @@ export const exportElementAsImage = async (
  * Download a data URL as a file
  */
 export const downloadDataUrl = (dataUrl: string, fileName: string): void => {
-  const link = document.createElement("a");
-  link.download = fileName;
-  link.href = dataUrl;
-  link.click();
-  toast.success(`${fileName} downloaded successfully!`);
+  try {
+    const link = document.createElement("a");
+    link.download = fileName;
+    link.href = dataUrl;
+    document.body.appendChild(link); // Need to append to body for Firefox
+    link.click();
+    document.body.removeChild(link); // Clean up
+    toast.success(`${fileName} downloaded successfully!`);
+  } catch (error) {
+    console.error("Error downloading image:", error);
+    toast.error("Failed to download image. Please try again.");
+  }
 };
