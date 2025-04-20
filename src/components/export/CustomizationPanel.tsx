@@ -165,7 +165,8 @@ const CustomizationPanel: React.FC<CustomizationPanelProps> = ({
                   <SelectValue placeholder="Select CSS Preset" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">None (Custom CSS)</SelectItem>
+                  {/* Fixed: Changed empty string to "none" to avoid SelectItem with empty value */}
+                  <SelectItem value="none">None (Custom CSS)</SelectItem>
                   {CSS_PRESETS.map(preset => (
                     <SelectItem key={preset.id} value={preset.id}>
                       {preset.name}

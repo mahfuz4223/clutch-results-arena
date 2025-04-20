@@ -33,7 +33,7 @@ const ResultCard: React.FC<ResultCardProps> = ({
   const [customStyles, setCustomStyles] = useState<string>("");
 
   useEffect(() => {
-    if (customization.cssPreset) {
+    if (customization.cssPreset && customization.cssPreset !== "none") {
       setCustomStyles(getCssPresetById(customization.cssPreset));
     } else {
       setCustomStyles(customization.customCss || "");
