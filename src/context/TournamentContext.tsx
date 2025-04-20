@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, ReactNode, useEffect } from "react";
 import { Tournament, Team, Day, Match, MatchResult } from "@/types";
 import { calculatePlacementPoints, calculateTotalPoints } from "@/utils/pointCalculator";
@@ -24,8 +25,6 @@ interface TournamentContextType {
   updateMatch: (match: Match) => Promise<void>;
   deleteMatch: (id: string) => Promise<void>;
   updateMatchResults: (matchId: string, results: MatchResult[]) => Promise<void>;
-  reorderDays: (sourceIndex: number, destinationIndex: number) => void;
-  reorderMatches: (dayId: string, sourceIndex: number, destinationIndex: number) => void;
 }
 
 const defaultContext: TournamentContextType = {
@@ -45,9 +44,7 @@ const defaultContext: TournamentContextType = {
   addMatch: async () => null,
   updateMatch: async () => {},
   deleteMatch: async () => {},
-  updateMatchResults: async () => {},
-  reorderDays: () => {},
-  reorderMatches: () => {}
+  updateMatchResults: async () => {}
 };
 
 export const TournamentContext = createContext<TournamentContextType>(defaultContext);
@@ -61,10 +58,12 @@ export const TournamentProvider: React.FC<{ children: ReactNode }> = ({ children
   const { user } = useAuth();
   const { toast } = useToast();
 
+  // Load tournaments when user changes
   useEffect(() => {
     if (user) {
       fetchTournaments();
     } else {
+      // Clear data when logged out
       setTournaments([]);
       setCurrentTournament(null);
       setLoading(false);
@@ -83,8 +82,10 @@ export const TournamentProvider: React.FC<{ children: ReactNode }> = ({ children
         
       if (error) throw error;
       
+      // For each tournament, fetch related teams and days
       const populatedTournaments = await Promise.all(
         tournamentsData.map(async (tournament) => {
+          // Fetch teams for this tournament
           const { data: teamsData, error: teamsError } = await supabase
             .from('teams')
             .select('*')
@@ -92,6 +93,7 @@ export const TournamentProvider: React.FC<{ children: ReactNode }> = ({ children
             
           if (teamsError) throw teamsError;
           
+          // Fetch days for this tournament
           const { data: daysData, error: daysError } = await supabase
             .from('days')
             .select('*')
@@ -100,6 +102,7 @@ export const TournamentProvider: React.FC<{ children: ReactNode }> = ({ children
             
           if (daysError) throw daysError;
           
+          // For each day, fetch matches
           const populatedDays = await Promise.all(
             daysData.map(async (day) => {
               const { data: matchesData, error: matchesError } = await supabase
@@ -110,6 +113,7 @@ export const TournamentProvider: React.FC<{ children: ReactNode }> = ({ children
                 
               if (matchesError) throw matchesError;
               
+              // For each match, fetch results
               const populatedMatches = await Promise.all(
                 matchesData.map(async (match) => {
                   const { data: resultsData, error: resultsError } = await supabase
@@ -145,14 +149,16 @@ export const TournamentProvider: React.FC<{ children: ReactNode }> = ({ children
             })
           );
           
+          // Map teams to our app's format
           const mappedTeams = teamsData.map(team => ({
             id: team.id,
             name: team.name,
             logo: team.logo || undefined,
             flag: team.flag || undefined,
-            players: []
+            players: [] // We'll fetch players separately if needed
           }));
           
+          // Return complete tournament
           return {
             id: tournament.id,
             name: tournament.name,
@@ -176,12 +182,14 @@ export const TournamentProvider: React.FC<{ children: ReactNode }> = ({ children
     }
   };
 
+  // Tournament operations
   const createTournament = async (name: string, description?: string): Promise<Tournament | null> => {
     if (!user) return null;
     
     try {
       const tournamentId = uuidv4();
       
+      // Insert tournament into Supabase
       const { error } = await supabase.from('tournaments').insert({
         id: tournamentId,
         name,
@@ -191,6 +199,7 @@ export const TournamentProvider: React.FC<{ children: ReactNode }> = ({ children
       
       if (error) throw error;
       
+      // Create new tournament object
       const newTournament: Tournament = {
         id: tournamentId,
         name,
@@ -199,6 +208,7 @@ export const TournamentProvider: React.FC<{ children: ReactNode }> = ({ children
         teams: []
       };
       
+      // Update local state
       setTournaments(prev => [newTournament, ...prev]);
       setCurrentTournament(newTournament);
       
@@ -223,6 +233,7 @@ export const TournamentProvider: React.FC<{ children: ReactNode }> = ({ children
     if (!user) return;
     
     try {
+      // Update tournament in Supabase
       const { error } = await supabase
         .from('tournaments')
         .update({
@@ -233,6 +244,7 @@ export const TournamentProvider: React.FC<{ children: ReactNode }> = ({ children
       
       if (error) throw error;
       
+      // Update local state
       setTournaments(prev => 
         prev.map(t => t.id === tournament.id ? tournament : t)
       );
@@ -259,6 +271,8 @@ export const TournamentProvider: React.FC<{ children: ReactNode }> = ({ children
     if (!user) return;
     
     try {
+      // Delete tournament from Supabase
+      // Note: All related records will be deleted automatically due to ON DELETE CASCADE
       const { error } = await supabase
         .from('tournaments')
         .delete()
@@ -266,6 +280,7 @@ export const TournamentProvider: React.FC<{ children: ReactNode }> = ({ children
       
       if (error) throw error;
       
+      // Update local state
       setTournaments(prev => prev.filter(t => t.id !== id));
       
       if (currentTournament?.id === id) {
@@ -291,12 +306,14 @@ export const TournamentProvider: React.FC<{ children: ReactNode }> = ({ children
     setCurrentTournament(tournament);
   };
 
+  // Team operations
   const addTeam = async (name: string, flag?: string, logo?: string): Promise<Team | null> => {
     if (!user || !currentTournament) return null;
     
     try {
       const teamId = uuidv4();
       
+      // Insert team into Supabase
       const { error } = await supabase.from('teams').insert({
         id: teamId,
         name,
@@ -307,6 +324,7 @@ export const TournamentProvider: React.FC<{ children: ReactNode }> = ({ children
       
       if (error) throw error;
       
+      // Create new team object
       const newTeam: Team = {
         id: teamId,
         name,
@@ -315,6 +333,7 @@ export const TournamentProvider: React.FC<{ children: ReactNode }> = ({ children
         players: []
       };
       
+      // Update local state
       const updatedTournament = {
         ...currentTournament,
         teams: [...currentTournament.teams, newTeam]
@@ -346,6 +365,7 @@ export const TournamentProvider: React.FC<{ children: ReactNode }> = ({ children
     if (!user || !currentTournament) return;
     
     try {
+      // Update team in Supabase
       const { error } = await supabase
         .from('teams')
         .update({
@@ -357,6 +377,7 @@ export const TournamentProvider: React.FC<{ children: ReactNode }> = ({ children
       
       if (error) throw error;
       
+      // Update local state
       const updatedTournament = {
         ...currentTournament,
         teams: currentTournament.teams.map(t => t.id === team.id ? team : t)
@@ -385,6 +406,7 @@ export const TournamentProvider: React.FC<{ children: ReactNode }> = ({ children
     if (!user || !currentTournament) return;
     
     try {
+      // Delete team from Supabase
       const { error } = await supabase
         .from('teams')
         .delete()
@@ -392,6 +414,7 @@ export const TournamentProvider: React.FC<{ children: ReactNode }> = ({ children
       
       if (error) throw error;
       
+      // Update local state
       const updatedTournament = {
         ...currentTournament,
         teams: currentTournament.teams.filter(t => t.id !== id)
@@ -416,12 +439,14 @@ export const TournamentProvider: React.FC<{ children: ReactNode }> = ({ children
     }
   };
 
+  // Day operations
   const addDay = async (name: string): Promise<Day | null> => {
     if (!user || !currentTournament) return null;
     
     try {
       const dayId = uuidv4();
       
+      // Insert day into Supabase
       const { error } = await supabase.from('days').insert({
         id: dayId,
         name,
@@ -430,6 +455,7 @@ export const TournamentProvider: React.FC<{ children: ReactNode }> = ({ children
       
       if (error) throw error;
       
+      // Create new day object
       const newDay: Day = {
         id: dayId,
         name,
@@ -437,6 +463,7 @@ export const TournamentProvider: React.FC<{ children: ReactNode }> = ({ children
         matches: []
       };
       
+      // Update local state
       const updatedTournament = {
         ...currentTournament,
         days: [...currentTournament.days, newDay]
@@ -468,6 +495,7 @@ export const TournamentProvider: React.FC<{ children: ReactNode }> = ({ children
     if (!user || !currentTournament) return;
     
     try {
+      // Update day in Supabase
       const { error } = await supabase
         .from('days')
         .update({
@@ -477,6 +505,7 @@ export const TournamentProvider: React.FC<{ children: ReactNode }> = ({ children
       
       if (error) throw error;
       
+      // Update local state
       const updatedTournament = {
         ...currentTournament,
         days: currentTournament.days.map(d => d.id === day.id ? day : d)
@@ -505,6 +534,7 @@ export const TournamentProvider: React.FC<{ children: ReactNode }> = ({ children
     if (!user || !currentTournament) return;
     
     try {
+      // Delete day from Supabase
       const { error } = await supabase
         .from('days')
         .delete()
@@ -512,6 +542,7 @@ export const TournamentProvider: React.FC<{ children: ReactNode }> = ({ children
       
       if (error) throw error;
       
+      // Update local state
       const updatedTournament = {
         ...currentTournament,
         days: currentTournament.days.filter(d => d.id !== id)
@@ -536,12 +567,14 @@ export const TournamentProvider: React.FC<{ children: ReactNode }> = ({ children
     }
   };
 
+  // Match operations
   const addMatch = async (name: string, dayId: string): Promise<Match | null> => {
     if (!user || !currentTournament) return null;
     
     try {
       const matchId = uuidv4();
       
+      // Insert match into Supabase
       const { error } = await supabase.from('matches').insert({
         id: matchId,
         name,
@@ -551,6 +584,7 @@ export const TournamentProvider: React.FC<{ children: ReactNode }> = ({ children
       
       if (error) throw error;
       
+      // Create new match object
       const newMatch: Match = {
         id: matchId,
         name,
@@ -559,6 +593,7 @@ export const TournamentProvider: React.FC<{ children: ReactNode }> = ({ children
         results: []
       };
       
+      // Update local state
       const updatedTournament = {
         ...currentTournament,
         days: currentTournament.days.map(day => {
@@ -598,6 +633,7 @@ export const TournamentProvider: React.FC<{ children: ReactNode }> = ({ children
     if (!user || !currentTournament) return;
     
     try {
+      // Update match in Supabase
       const { error } = await supabase
         .from('matches')
         .update({
@@ -608,15 +644,18 @@ export const TournamentProvider: React.FC<{ children: ReactNode }> = ({ children
       
       if (error) throw error;
       
+      // Update local state
       const updatedTournament = {
         ...currentTournament,
         days: currentTournament.days.map(day => {
+          // If this is the day that contains the match
           if (day.id === match.dayId) {
             return {
               ...day,
               matches: day.matches.map(m => m.id === match.id ? match : m)
             };
           }
+          // If the match was moved from this day to another day
           if (day.matches.some(m => m.id === match.id)) {
             return {
               ...day,
@@ -627,6 +666,7 @@ export const TournamentProvider: React.FC<{ children: ReactNode }> = ({ children
         })
       };
       
+      // If the match was moved to a day that didn't have it before, add it
       const hasMatch = updatedTournament.days.some(day => 
         day.id === match.dayId && day.matches.some(m => m.id === match.id)
       );
@@ -674,6 +714,7 @@ export const TournamentProvider: React.FC<{ children: ReactNode }> = ({ children
     if (!user || !currentTournament) return;
     
     try {
+      // Delete match from Supabase
       const { error } = await supabase
         .from('matches')
         .delete()
@@ -681,6 +722,7 @@ export const TournamentProvider: React.FC<{ children: ReactNode }> = ({ children
       
       if (error) throw error;
       
+      // Update local state
       const updatedTournament = {
         ...currentTournament,
         days: currentTournament.days.map(day => {
@@ -717,6 +759,7 @@ export const TournamentProvider: React.FC<{ children: ReactNode }> = ({ children
     if (!user || !currentTournament) return;
     
     try {
+      // Calculate placement points and total points for each result
       const calculatedResults = results.map(result => {
         const placementPoints = calculatePlacementPoints(result.placement);
         const killPoints = result.kills;
@@ -730,6 +773,7 @@ export const TournamentProvider: React.FC<{ children: ReactNode }> = ({ children
         };
       });
       
+      // Delete existing results for this match
       const { error: deleteError } = await supabase
         .from('match_results')
         .delete()
@@ -737,6 +781,7 @@ export const TournamentProvider: React.FC<{ children: ReactNode }> = ({ children
         
       if (deleteError) throw deleteError;
       
+      // Insert new results
       if (calculatedResults.length > 0) {
         const { error: insertError } = await supabase.from('match_results').insert(
           calculatedResults.map(result => ({
@@ -753,6 +798,7 @@ export const TournamentProvider: React.FC<{ children: ReactNode }> = ({ children
         if (insertError) throw insertError;
       }
       
+      // Update local state
       const updatedTournament = {
         ...currentTournament,
         days: currentTournament.days.map(day => {
@@ -790,54 +836,6 @@ export const TournamentProvider: React.FC<{ children: ReactNode }> = ({ children
     }
   };
 
-  const reorderDays = (sourceIndex: number, destinationIndex: number) => {
-    if (!currentTournament) return;
-
-    const newDays = [...currentTournament.days];
-    
-    const [movedDay] = newDays.splice(sourceIndex, 1);
-    newDays.splice(destinationIndex, 0, movedDay);
-    
-    setCurrentTournament({
-      ...currentTournament,
-      days: newDays
-    });
-    
-    setTournaments(prevTournaments => 
-      prevTournaments.map(t => 
-        t.id === currentTournament.id 
-          ? { ...t, days: newDays } 
-          : t
-      )
-    );
-  };
-
-  const reorderMatches = (dayId: string, sourceIndex: number, destinationIndex: number) => {
-    if (!currentTournament) return;
-
-    const updatedTournament = { ...currentTournament };
-    
-    const dayIndex = updatedTournament.days.findIndex(day => day.id === dayId);
-    if (dayIndex === -1) return;
-    
-    const newMatches = [...updatedTournament.days[dayIndex].matches];
-    
-    const [movedMatch] = newMatches.splice(sourceIndex, 1);
-    newMatches.splice(destinationIndex, 0, movedMatch);
-    
-    updatedTournament.days[dayIndex].matches = newMatches;
-    
-    setCurrentTournament(updatedTournament);
-    
-    setTournaments(prevTournaments => 
-      prevTournaments.map(t => 
-        t.id === currentTournament.id 
-          ? updatedTournament 
-          : t
-      )
-    );
-  };
-
   return (
     <TournamentContext.Provider
       value={{
@@ -857,9 +855,7 @@ export const TournamentProvider: React.FC<{ children: ReactNode }> = ({ children
         addMatch,
         updateMatch,
         deleteMatch,
-        updateMatchResults,
-        reorderDays,
-        reorderMatches
+        updateMatchResults
       }}
     >
       {children}

@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { useTournament } from "@/context/TournamentContext";
@@ -6,22 +5,24 @@ import Layout from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import DayForm from "@/components/days/DayForm";
-import MatchForm from "@/components/matches/MatchForm";
-import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
-import { ChevronLeft, Plus, GripVertical, Edit, Trash2, Download } from "lucide-react";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList, CommandSeparator } from "@/components/ui/command";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Plus, Edit, Trash, ChevronLeft, Table2, CalendarDays } from "lucide-react";
+import { Day, Match } from "@/types";
+import MatchForm from "@/components/matches/MatchForm";
+import ResultsInput from "@/components/matches/ResultsInput";
 
 const MatchesPage = () => {
   const { id } = useParams<{ id: string }>();
-  const { selectTournament, currentTournament, addDay, updateDay, deleteDay, addMatch, updateMatch, deleteMatch, reorderDays, reorderMatches } = useTournament();
-  const [openDayForm, setOpenDayForm] = useState(false);
+  const { selectTournament, currentTournament, addDay, deleteDay, deleteMatch } = useTournament();
+  const [isAddMatchOpen, setIsAddMatchOpen] = useState(false);
+  const [editingMatch, setEditingMatch] = useState<Match | undefined>(undefined);
   const [selectedDayId, setSelectedDayId] = useState<string | null>(null);
-  const [openMatchForm, setOpenMatchForm] = useState(false);
-  const [selectedMatchId, setSelectedMatchId] = useState<string | null>(null);
-  const [searchTerm, setSearchTerm] = useState("");
+  const [showResultsForMatch, setShowResultsForMatch] = useState<string | null>(null);
+  const [newDayName, setNewDayName] = useState<string>("");
+  const [isAddingDay, setIsAddingDay] = useState(false);
   
   // Select tournament if not already selected
   React.useEffect(() => {
@@ -29,56 +30,6 @@ const MatchesPage = () => {
       selectTournament(id);
     }
   }, [id, currentTournament, selectTournament]);
-
-  const handleDragEndDay = (result: any) => {
-    if (!result.destination) {
-      return;
-    }
-
-    reorderDays(result.source.index, result.destination.index);
-  };
-
-  const handleDragEndMatch = (dayId: string) => (result: any) => {
-    if (!result.destination) {
-      return;
-    }
-
-    reorderMatches(dayId, result.source.index, result.destination.index);
-  };
-
-  // Function to export schedule as JSON
-  const exportSchedule = () => {
-    if (!currentTournament) return;
-    
-    const data = {
-      tournamentName: currentTournament.name,
-      tournamentId: currentTournament.id,
-      days: currentTournament.days.map(day => ({
-        id: day.id,
-        name: day.name,
-        matches: day.matches.map(match => ({
-          id: match.id,
-          name: match.name
-        }))
-      }))
-    };
-    
-    const jsonString = JSON.stringify(data, null, 2);
-    const blob = new Blob([jsonString], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${currentTournament.name.replace(/\s+/g, '-').toLowerCase()}-schedule.json`;
-    a.style.display = 'none';
-    document.body.appendChild(a);
-    a.click();
-    
-    // Clean up
-    setTimeout(() => {
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-    }, 100);
-  };
 
   if (!currentTournament) {
     return (
@@ -95,9 +46,64 @@ const MatchesPage = () => {
     );
   }
 
-  const filteredDays = currentTournament.days.filter(day =>
-    day.name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // Set first day as selected by default if there are days
+  React.useEffect(() => {
+    if (currentTournament && currentTournament.days.length > 0 && !selectedDayId) {
+      setSelectedDayId(currentTournament.days[0].id);
+    }
+  }, [currentTournament, selectedDayId]);
+
+  const handleAddDay = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (newDayName.trim()) {
+      setIsAddingDay(true);
+      try {
+        const newDay = await addDay(newDayName);
+        if (newDay) {
+          setSelectedDayId(newDay.id);
+          setNewDayName("");
+        }
+      } catch (error) {
+        console.error("Error adding day:", error);
+      } finally {
+        setIsAddingDay(false);
+      }
+    }
+  };
+
+  const handleEditMatch = (match: Match) => {
+    setEditingMatch(match);
+    setIsAddMatchOpen(true);
+  };
+
+  const handleDeleteMatch = (matchId: string) => {
+    if (confirm("Are you sure you want to delete this match? This action cannot be undone.")) {
+      deleteMatch(matchId);
+      if (showResultsForMatch === matchId) {
+        setShowResultsForMatch(null);
+      }
+    }
+  };
+
+  const handleDeleteDay = (dayId: string) => {
+    if (confirm("Are you sure you want to delete this day and all its matches? This action cannot be undone.")) {
+      deleteDay(dayId);
+      if (selectedDayId === dayId) {
+        setSelectedDayId(currentTournament.days[0]?.id || null);
+      }
+    }
+  };
+
+  const closeMatchDialog = () => {
+    setIsAddMatchOpen(false);
+    setEditingMatch(undefined);
+  };
+
+  const closeResultsDialog = () => {
+    setShowResultsForMatch(null);
+  };
+
+  const currentDay = currentTournament.days.find(day => day.id === selectedDayId);
 
   return (
     <Layout>
@@ -110,288 +116,291 @@ const MatchesPage = () => {
                   <ChevronLeft className="h-4 w-4" />
                 </Button>
               </Link>
-              <div className="flex items-center">
-                <img 
-                  src="/public/lovable-uploads/208256eb-7194-493e-b6f2-1bb74a96f28d.png" 
-                  alt="PUBG Mobile" 
-                  className="h-8 mr-2" 
-                />
-                <h1 className="text-3xl font-bold">Matches</h1>
-              </div>
+              <h1 className="text-3xl font-bold">Matches</h1>
             </div>
             <p className="text-gray-500">Manage days and matches for {currentTournament.name}</p>
           </div>
-          
-          <div className="flex space-x-3">
-            <Button 
-              variant="outline" 
-              className="flex items-center gap-2"
-              onClick={exportSchedule}
-            >
-              <Download className="h-4 w-4" />
-              Export Schedule
-            </Button>
-            
-            <Command>
-              <CommandTrigger>
-                <Button>
-                  <Plus className="h-4 w-4 mr-2" /> Add Day
-                </Button>
-              </CommandTrigger>
-              <CommandContent>
-                <CommandHeader>
-                  <CommandTitle>Add Day</CommandTitle>
-                  <CommandDescription>Create a new day for the tournament</CommandDescription>
-                </CommandHeader>
-                <CommandInput placeholder="Type to filter days..." />
-                <CommandList>
-                  <CommandEmpty>No day found.</CommandEmpty>
-                  <CommandItem onSelect={() => setOpenDayForm(true)}>
-                    New Day
-                  </CommandItem>
-                </CommandList>
-              </CommandContent>
-            </Command>
-          </div>
         </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Days</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {currentTournament.days.length === 0 ? (
-              <p className="text-gray-500">No days added yet.</p>
-            ) : (
-              <div className="space-y-4">
-                <div className="rounded-md border">
-                  <div className="relative">
-                    <Input
-                      placeholder="Search days..."
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      className="h-11 w-full rounded-md border-0 bg-transparent px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-sm focus-visible:outline-none"
-                    />
-                  </div>
-                </div>
-                
-                <DragDropContext onDragEnd={handleDragEndDay}>
-                  <Droppable droppableId="days">
-                    {(provided) => (
-                      <ul {...provided.droppableProps} ref={provided.innerRef} className="space-y-2">
-                        {filteredDays.map((day, index) => (
-                          <Draggable key={day.id} draggableId={day.id} index={index}>
-                            {(provided) => (
-                              <li
-                                ref={provided.innerRef}
-                                {...provided.draggableProps}
-                                className="bg-gray-50 rounded-md p-4 shadow-sm border border-gray-200 flex items-center justify-between"
-                              >
-                                <div className="flex items-center">
-                                  <div {...provided.dragHandleProps}>
-                                    <GripVertical className="h-5 w-5 mr-2 text-gray-400 cursor-grab" />
-                                  </div>
-                                  <span className="font-medium">{day.name}</span>
-                                </div>
-                                <div className="flex items-center space-x-2">
+        <Tabs defaultValue="days" className="w-full">
+          <TabsList className="grid w-full max-w-md grid-cols-2">
+            <TabsTrigger value="days" className="flex items-center">
+              <CalendarDays className="h-4 w-4 mr-2" />
+              Days
+            </TabsTrigger>
+            <TabsTrigger value="allMatches" className="flex items-center">
+              <Table2 className="h-4 w-4 mr-2" />
+              All Matches
+            </TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="days" className="space-y-6">
+            {/* Days List and Add Day Form */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+              <div className="md:col-span-1">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg">Days</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    {currentTournament.days.length === 0 ? (
+                      <p className="text-sm text-gray-500">No days added yet.</p>
+                    ) : (
+                      <div className="space-y-2">
+                        {currentTournament.days.map((day) => (
+                          <div 
+                            key={day.id} 
+                            className={`
+                              p-3 rounded-md cursor-pointer flex justify-between items-center
+                              ${selectedDayId === day.id ? 'bg-blue-50 text-blue-700 border border-blue-200' : 'hover:bg-gray-50'}
+                            `}
+                            onClick={() => setSelectedDayId(day.id)}
+                          >
+                            <div className="font-medium">{day.name}</div>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-6 w-6 p-0 text-red-500 hover:text-red-700"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeleteDay(day.id);
+                              }}
+                            >
+                              <Trash className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    
+                    <form onSubmit={handleAddDay} className="mt-4 space-y-2">
+                      <div className="flex items-center space-x-2">
+                        <Input
+                          value={newDayName}
+                          onChange={(e) => setNewDayName(e.target.value)}
+                          placeholder="Day Name (e.g. Day 1)"
+                          className="flex-1"
+                        />
+                        <Button type="submit" size="sm" disabled={!newDayName.trim()}>
+                          <Plus className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </form>
+                  </CardContent>
+                </Card>
+              </div>
+              
+              <div className="md:col-span-3">
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between">
+                    <CardTitle className="text-lg">
+                      {currentDay ? `Matches for ${currentDay.name}` : "No day selected"}
+                    </CardTitle>
+                    
+                    {currentDay && (
+                      <Dialog open={isAddMatchOpen} onOpenChange={setIsAddMatchOpen}>
+                        <DialogTrigger asChild>
+                          <Button size="sm" className="flex items-center gap-1">
+                            <Plus className="h-3 w-3" />
+                            Add Match
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent className="sm:max-w-md">
+                          <MatchForm 
+                            existingMatch={editingMatch} 
+                            dayId={currentDay.id}
+                            onClose={closeMatchDialog}
+                          />
+                        </DialogContent>
+                      </Dialog>
+                    )}
+                  </CardHeader>
+                  <CardContent>
+                    {!currentDay ? (
+                      <div className="text-center py-8">
+                        <p className="text-gray-500">
+                          {currentTournament.days.length === 0 
+                            ? "Add a day first to manage matches" 
+                            : "Select a day to view matches"}
+                        </p>
+                      </div>
+                    ) : currentDay.matches.length === 0 ? (
+                      <div className="text-center py-8">
+                        <p className="text-gray-500 mb-4">No matches added for this day yet.</p>
+                        <Dialog open={isAddMatchOpen} onOpenChange={setIsAddMatchOpen}>
+                          <DialogTrigger asChild>
+                            <Button className="flex items-center gap-2">
+                              <Plus className="h-4 w-4" />
+                              Add Your First Match
+                            </Button>
+                          </DialogTrigger>
+                          <DialogContent className="sm:max-w-md">
+                            <MatchForm 
+                              dayId={currentDay.id}
+                              onClose={closeMatchDialog}
+                            />
+                          </DialogContent>
+                        </Dialog>
+                      </div>
+                    ) : (
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Match</TableHead>
+                            <TableHead>Results Status</TableHead>
+                            <TableHead className="text-right">Actions</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {currentDay.matches.map((match) => (
+                            <TableRow key={match.id}>
+                              <TableCell className="font-medium">{match.name}</TableCell>
+                              <TableCell>
+                                {match.results && match.results.length > 0 ? (
+                                  <span className="inline-flex items-center rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-800">
+                                    Results Added
+                                  </span>
+                                ) : (
+                                  <span className="inline-flex items-center rounded-full bg-yellow-100 px-2.5 py-0.5 text-xs font-medium text-yellow-800">
+                                    No Results
+                                  </span>
+                                )}
+                              </TableCell>
+                              <TableCell className="text-right">
+                                <div className="flex justify-end space-x-2">
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => setShowResultsForMatch(match.id)}
+                                  >
+                                    Results
+                                  </Button>
                                   <Button
                                     variant="ghost"
                                     size="sm"
-                                    onClick={() => {
-                                      setSelectedDayId(day.id);
-                                      setOpenDayForm(true);
-                                    }}
+                                    onClick={() => handleEditMatch(match)}
                                   >
                                     <Edit className="h-4 w-4" />
                                   </Button>
                                   <Button
                                     variant="ghost"
                                     size="sm"
-                                    onClick={() => deleteDay(day.id)}
+                                    className="text-red-500 hover:text-red-700"
+                                    onClick={() => handleDeleteMatch(match.id)}
                                   >
-                                    <Trash2 className="h-4 w-4 text-red-500" />
+                                    <Trash className="h-4 w-4" />
                                   </Button>
                                 </div>
-                              </li>
-                            )}
-                          </Draggable>
-                        ))}
-                        {provided.placeholder}
-                      </ul>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
                     )}
-                  </Droppable>
-                </DragDropContext>
+                  </CardContent>
+                </Card>
               </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {currentTournament.days.length > 0 && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Matches</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {currentTournament.days.map(day => (
-                  <div key={day.id} className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <h3 className="text-lg font-semibold">{day.name} Matches</h3>
-                      <Button onClick={() => {
-                        setSelectedDayId(day.id);
-                        setOpenMatchForm(true);
-                      }}>
-                        <Plus className="h-4 w-4 mr-2" /> Add Match
+            </div>
+          </TabsContent>
+          
+          <TabsContent value="allMatches" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>All Tournament Matches</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {currentTournament.days.length === 0 || 
+                 currentTournament.days.every(day => day.matches.length === 0) ? (
+                  <div className="text-center py-8">
+                    <p className="text-gray-500 mb-4">No matches added to this tournament yet.</p>
+                    <Link to={`/tournament/${currentTournament.id}/matches`}>
+                      <Button className="flex items-center gap-2">
+                        <Plus className="h-4 w-4" />
+                        Add Your First Match
                       </Button>
-                    </div>
-                    
-                    {day.matches.length === 0 ? (
-                      <p className="text-gray-500">No matches added for {day.name} yet.</p>
-                    ) : (
-                      <DragDropContext onDragEnd={handleDragEndMatch(day.id)}>
-                        <Droppable droppableId={`matches-${day.id}`}>
-                          {(provided) => (
-                            <ul
-                              {...provided.droppableProps}
-                              ref={provided.innerRef}
-                              className="space-y-2"
-                            >
-                              {day.matches.map((match, index) => (
-                                <Draggable key={match.id} draggableId={match.id} index={index}>
-                                  {(provided) => (
-                                    <li
-                                      ref={provided.innerRef}
-                                      {...provided.draggableProps}
-                                      className="bg-gray-50 rounded-md p-4 shadow-sm border border-gray-200 flex items-center justify-between"
-                                    >
-                                      <div className="flex items-center">
-                                        <div {...provided.dragHandleProps}>
-                                          <GripVertical className="h-5 w-5 mr-2 text-gray-400 cursor-grab" />
-                                        </div>
-                                        <span className="font-medium">{match.name}</span>
-                                      </div>
-                                      <div className="flex items-center space-x-2">
-                                        <Button
-                                          variant="ghost"
-                                          size="sm"
-                                          onClick={() => {
-                                            setSelectedMatchId(match.id);
-                                            setSelectedDayId(day.id);
-                                            setOpenMatchForm(true);
-                                          }}
-                                        >
-                                          <Edit className="h-4 w-4" />
-                                        </Button>
-                                        <Button
-                                          variant="ghost"
-                                          size="sm"
-                                          onClick={() => deleteMatch(match.id)}
-                                        >
-                                          <Trash2 className="h-4 w-4 text-red-500" />
-                                        </Button>
-                                      </div>
-                                    </li>
-                                  )}
-                                </Draggable>
-                              ))}
-                              {provided.placeholder}
-                            </ul>
-                          )}
-                        </Droppable>
-                      </DragDropContext>
-                    )}
+                    </Link>
                   </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Day</TableHead>
+                        <TableHead>Match</TableHead>
+                        <TableHead>Results Status</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {currentTournament.days.flatMap(day => 
+                        day.matches.map(match => (
+                          <TableRow key={match.id}>
+                            <TableCell>{day.name}</TableCell>
+                            <TableCell className="font-medium">{match.name}</TableCell>
+                            <TableCell>
+                              {match.results && match.results.length > 0 ? (
+                                <span className="inline-flex items-center rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-800">
+                                  Results Added
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center rounded-full bg-yellow-100 px-2.5 py-0.5 text-xs font-medium text-yellow-800">
+                                  No Results
+                                </span>
+                              )}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <div className="flex justify-end space-x-2">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => setShowResultsForMatch(match.id)}
+                                >
+                                  Results
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => {
+                                    setSelectedDayId(day.id);
+                                    handleEditMatch(match);
+                                  }}
+                                >
+                                  <Edit className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="text-red-500 hover:text-red-700"
+                                  onClick={() => handleDeleteMatch(match.id)}
+                                >
+                                  <Trash className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      )}
+                    </TableBody>
+                  </Table>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
+
+        {/* Results Dialog */}
+        {showResultsForMatch && (
+          <Dialog open={!!showResultsForMatch} onOpenChange={() => setShowResultsForMatch(null)}>
+            <DialogContent className="max-w-3xl">
+              <ResultsInput 
+                matchId={showResultsForMatch} 
+                onSave={closeResultsDialog}
+              />
+            </DialogContent>
+          </Dialog>
         )}
       </div>
-
-      <Dialog open={openDayForm} onOpenChange={setOpenDayForm}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{selectedDayId ? "Edit Day" : "Add New Day"}</DialogTitle>
-            <DialogDescription>
-              {selectedDayId ? "Update the day's information." : "Create a new day for the tournament."}
-            </DialogDescription>
-          </DialogHeader>
-          <DayForm 
-            existingDay={selectedDayId ? currentTournament.days.find(day => day.id === selectedDayId) : undefined}
-            onClose={() => {
-              setOpenDayForm(false);
-              setSelectedDayId(null);
-            }}
-          />
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={openMatchForm} onOpenChange={setOpenMatchForm}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{selectedMatchId ? "Edit Match" : "Add New Match"}</DialogTitle>
-            <DialogDescription>
-              {selectedMatchId ? "Update the match's information." : "Create a new match for a specific day."}
-            </DialogDescription>
-          </DialogHeader>
-          <MatchForm
-            existingMatch={selectedMatchId ? currentTournament.days.flatMap(day => day.matches).find(match => match.id === selectedMatchId) : undefined}
-            dayId={selectedDayId || undefined}
-            onClose={() => {
-              setOpenMatchForm(false);
-              setSelectedMatchId(null);
-              setSelectedDayId(null);
-            }}
-          />
-        </DialogContent>
-      </Dialog>
     </Layout>
   );
 };
-
-interface CommandContentProps extends React.HTMLAttributes<HTMLDivElement> {}
-
-const CommandContent = React.forwardRef<HTMLDivElement, CommandContentProps>(
-  ({ className, ...props }, ref) => (
-    <div className="z-50 overflow-hidden rounded-md border bg-popover text-popover-foreground data-[state=open]:animate-in data-[state=closed]:zoom-out-95 data-[state=closed]:fade-out-0 data-[state=open]:zoom-in-95 data-[state=open]:fade-in-0" ref={ref} {...props} />
-  )
-);
-CommandContent.displayName = "CommandContent"
-
-interface CommandHeaderProps extends React.HTMLAttributes<HTMLDivElement> {}
-
-const CommandHeader = React.forwardRef<HTMLDivElement, CommandHeaderProps>(
-  ({ className, ...props }, ref) => (
-    <div className="flex flex-col px-2 py-1.5 text-sm" ref={ref} {...props} />
-  )
-);
-CommandHeader.displayName = "CommandHeader"
-
-interface CommandTitleProps extends React.HTMLAttributes<HTMLHeadingElement> {}
-
-const CommandTitle = React.forwardRef<HTMLHeadingElement, CommandTitleProps>(
-  ({ className, ...props }, ref) => (
-    <h1 className="mb-1.5 mt-2 px-2 text-lg font-semibold" ref={ref} {...props} />
-  )
-);
-CommandTitle.displayName = "CommandTitle"
-
-interface CommandDescriptionProps extends React.HTMLAttributes<HTMLParagraphElement> {}
-
-const CommandDescription = React.forwardRef<HTMLParagraphElement, CommandDescriptionProps>(
-  ({ className, ...props }, ref) => (
-    <p className="px-2 text-muted-foreground text-sm" ref={ref} {...props} />
-  )
-);
-CommandDescription.displayName = "CommandDescription"
-
-interface CommandTriggerProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {}
-
-const CommandTrigger = React.forwardRef<HTMLButtonElement, CommandTriggerProps>(
-  ({ className, ...props }, ref) => (
-    <Button variant="outline" size="sm" className="w-[200px] justify-start" ref={ref} {...props} />
-  )
-);
-CommandTrigger.displayName = "CommandTrigger"
 
 export default MatchesPage;

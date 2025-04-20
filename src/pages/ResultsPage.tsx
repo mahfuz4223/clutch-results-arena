@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { useTournament } from "@/context/TournamentContext";
 import Layout from "@/components/layout/Layout";
@@ -10,73 +10,25 @@ import OverallStandings from "@/components/results/OverallStandings";
 import ResultsTable from "@/components/results/ResultsTable";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ChevronLeft, BarChart3, Download, Loader2 } from "lucide-react";
-import { toast } from "sonner";
+import { ChevronLeft, BarChart3 } from "lucide-react";
 
 const ResultsPage = () => {
   const { id } = useParams<{ id: string }>();
   const { selectTournament, currentTournament } = useTournament();
   const [selectedDay, setSelectedDay] = useState<string>("all");
   const [selectedMatch, setSelectedMatch] = useState<string | null>(null);
-  const [isExporting, setIsExporting] = useState(false);
   
   // Select tournament if not already selected
-  useEffect(() => {
+  React.useEffect(() => {
     if (id && (!currentTournament || currentTournament.id !== id)) {
       selectTournament(id);
     }
   }, [id, currentTournament, selectTournament]);
 
   // Reset selected match when day changes
-  useEffect(() => {
+  React.useEffect(() => {
     setSelectedMatch(null);
   }, [selectedDay]);
-
-  // Function to export results as JSON
-  const exportResults = () => {
-    if (!currentTournament) return;
-    
-    try {
-      setIsExporting(true);
-      
-      const data = {
-        tournamentName: currentTournament.name,
-        tournamentId: currentTournament.id,
-        days: currentTournament.days.map(day => ({
-          id: day.id,
-          name: day.name,
-          matches: day.matches.map(match => ({
-            id: match.id,
-            name: match.name,
-            results: match.results
-          }))
-        })),
-        teams: currentTournament.teams.map(team => ({
-          id: team.id,
-          name: team.name,
-          flag: team.flag
-        }))
-      };
-      
-      const jsonString = JSON.stringify(data, null, 2);
-      const blob = new Blob([jsonString], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${currentTournament.name.replace(/\s+/g, '-').toLowerCase()}-results.json`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-      
-      toast.success("Results exported successfully!");
-    } catch (error) {
-      console.error("Error exporting results:", error);
-      toast.error("Failed to export results");
-    } finally {
-      setIsExporting(false);
-    }
-  };
 
   if (!currentTournament) {
     return (
@@ -113,43 +65,19 @@ const ResultsPage = () => {
                   <ChevronLeft className="h-4 w-4" />
                 </Button>
               </Link>
-              <div className="flex items-center">
-                <img 
-                  src="/lovable-uploads/bb077b02-12df-4f5f-bc07-bfade01b67dd.png" 
-                  alt="PUBG Mobile" 
-                  className="h-8 mr-2" 
-                />
-                <h1 className="text-3xl font-bold">Results</h1>
-              </div>
+              <h1 className="text-3xl font-bold">Results</h1>
             </div>
             <p className="text-gray-500">View standings for {currentTournament.name}</p>
           </div>
           
-          <div className="flex space-x-3">
-            <Button 
-              variant="outline" 
-              className="flex items-center gap-2"
-              onClick={exportResults}
-              disabled={isExporting}
-            >
-              {isExporting ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Download className="h-4 w-4" />
-              )}
-              Export JSON
+          <Link to={`/tournament/${currentTournament.id}/export`}>
+            <Button variant="outline" className="flex items-center gap-2">
+              <BarChart3 className="h-4 w-4" />
+              Export Results
             </Button>
-            
-            <Link to={`/tournament/${currentTournament.id}/export`}>
-              <Button variant="outline" className="flex items-center gap-2">
-                <BarChart3 className="h-4 w-4" />
-                Export Graphics
-              </Button>
-            </Link>
-          </div>
+          </Link>
         </div>
 
-        {/* No teams message */}
         {currentTournament.teams.length === 0 ? (
           <Card>
             <CardContent className="p-8 text-center">
@@ -192,15 +120,12 @@ const ResultsPage = () => {
                 {selectedDay !== "all" && (
                   <div className="flex items-center space-x-4">
                     <div className="font-medium">Match:</div>
-                    <Select 
-                      value={selectedMatch || "all"} 
-                      onValueChange={(value) => setSelectedMatch(value === "all" ? null : value)}
-                    >
+                    <Select value={selectedMatch || ""} onValueChange={setSelectedMatch}>
                       <SelectTrigger className="w-40">
                         <SelectValue placeholder="All Matches" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="all">All Matches</SelectItem>
+                        <SelectItem value="">All Matches</SelectItem>
                         {matchesForDay.map(match => (
                           <SelectItem key={match.id} value={match.id}>
                             {match.name}

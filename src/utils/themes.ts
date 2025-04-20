@@ -1,87 +1,64 @@
 
 import { ThemeOption } from "@/types";
 
-// Define color themes for export
 export const THEME_OPTIONS: ThemeOption[] = [
   {
-    id: "pubg-blue",
-    name: "PUBG Blue",
-    preview: "#0A1F38",
-    background: "bg-[#0A1F38]",
-    headerBg: "bg-blue-900",
+    id: "blue-classic",
+    name: "Blue Classic",
+    background: "bg-gradient-to-br from-blue-700 to-blue-900",
     textColor: "text-white",
     accentColor: "bg-blue-500",
-    tableBg: "bg-blue-950/80",
-    borderColor: "border-gray-700"
+    headerBg: "bg-blue-800/80",
+    tableBg: "bg-blue-800/60",
+    borderColor: "border-blue-600",
+    preview: "blue-theme"
   },
   {
-    id: "pubg-dark",
-    name: "PUBG Dark",
-    preview: "#121212",
-    background: "bg-[#121212]",
-    headerBg: "bg-zinc-900",
+    id: "red-energy",
+    name: "Red Energy",
+    background: "bg-gradient-to-br from-red-700 to-pink-900",
+    textColor: "text-white",
+    accentColor: "bg-pink-600",
+    headerBg: "bg-red-800/80",
+    tableBg: "bg-red-900/70",
+    borderColor: "border-red-600",
+    preview: "red-theme"
+  },
+  {
+    id: "dark-elite",
+    name: "Dark Elite",
+    background: "bg-gradient-to-br from-gray-800 to-gray-900",
     textColor: "text-white",
     accentColor: "bg-yellow-500",
-    tableBg: "bg-zinc-800/80",
-    borderColor: "border-zinc-700"
+    headerBg: "bg-black/80",
+    tableBg: "bg-gray-900/80",
+    borderColor: "border-gray-700",
+    preview: "dark-theme"
   },
   {
-    id: "pubg-green",
-    name: "PUBG Military",
-    preview: "#1C2B1F",
-    background: "bg-[#1C2B1F]",
-    headerBg: "bg-green-900",
+    id: "cyber-future",
+    name: "Cyber Future",
+    background: "bg-gradient-to-br from-purple-800 to-blue-900",
     textColor: "text-white",
-    accentColor: "bg-green-500",
-    tableBg: "bg-green-950/80",
-    borderColor: "border-green-800"
+    accentColor: "bg-cyan-400",
+    headerBg: "bg-purple-900/80",
+    tableBg: "bg-indigo-900/70",
+    borderColor: "border-purple-600",
+    preview: "cyber-theme"
   },
   {
-    id: "pubg-orange",
-    name: "PUBG Orange",
-    preview: "#2A1913",
-    background: "bg-[#2A1913]",
-    headerBg: "bg-orange-900",
+    id: "esports-pro",
+    name: "Esports Pro",
+    background: "bg-gradient-to-br from-indigo-800 via-blue-800 to-cyan-800",
     textColor: "text-white",
-    accentColor: "bg-orange-500",
-    tableBg: "bg-orange-950/80",
-    borderColor: "border-orange-800"
-  },
-  {
-    id: "pubg-red",
-    name: "PUBG Red",
-    preview: "#2A1213",
-    background: "bg-[#2A1213]",
-    headerBg: "bg-red-900",
-    textColor: "text-white",
-    accentColor: "bg-red-500",
-    tableBg: "bg-red-950/80",
-    borderColor: "border-red-800"
-  },
-  {
-    id: "pubg-light",
-    name: "PUBG Light",
-    preview: "#F6F6F6",
-    background: "bg-[#F6F6F6]",
-    headerBg: "bg-gray-200",
-    textColor: "text-gray-800",
-    accentColor: "bg-blue-500",
-    tableBg: "bg-white/90",
-    borderColor: "border-gray-300"
-  },
-  {
-    id: "pubg-purple",
-    name: "PUBG Purple",
-    preview: "#1F102A",
-    background: "bg-[#1F102A]",
-    headerBg: "bg-purple-900",
-    textColor: "text-white",
-    accentColor: "bg-purple-500",
-    tableBg: "bg-purple-950/80",
-    borderColor: "border-purple-800"
+    accentColor: "bg-cyan-500",
+    headerBg: "bg-indigo-900/90",
+    tableBg: "bg-blue-900/80",
+    borderColor: "border-blue-700",
+    preview: "esports-theme"
   }
 ];
 
-export const getThemeById = (id: string): ThemeOption => {
+export function getThemeById(id: string): ThemeOption {
   return THEME_OPTIONS.find(theme => theme.id === id) || THEME_OPTIONS[0];
-};
+}

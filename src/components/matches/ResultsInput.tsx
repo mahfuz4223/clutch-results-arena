@@ -4,36 +4,42 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Match, MatchResult, Team } from "@/types";
+import { Match, MatchResult } from "@/types";
 import { calculatePlacementPoints } from "@/utils/pointCalculator";
 import { Save } from "lucide-react";
 
 interface ResultsInputProps {
   matchId: string;
-  match?: Match;
-  teams?: Team[];
-  onComplete?: () => void;
   onSave?: () => void;
 }
 
-const ResultsInput: React.FC<ResultsInputProps> = ({ matchId, match, teams, onComplete, onSave }) => {
+const ResultsInput: React.FC<ResultsInputProps> = ({ matchId, onSave }) => {
   const { currentTournament, updateMatchResults } = useTournament();
   const [results, setResults] = useState<MatchResult[]>([]);
   const [isDirty, setIsDirty] = useState(false);
 
-  const tourTeams = teams || (currentTournament?.teams || []);
-  const matchToUse = match || (currentTournament?.days
-    .flatMap(day => day.matches)
-    .find(m => m.id === matchId));
+  if (!currentTournament) {
+    return <div>No tournament selected</div>;
+  }
 
+  // Find the match in the current tournament
+  const match = currentTournament.days
+    .flatMap(day => day.matches)
+    .find(m => m.id === matchId);
+
+  if (!match) {
+    return <div>Match not found</div>;
+  }
+
+  // Initialize results on mount or match change
   useEffect(() => {
-    if (matchToUse) {
+    if (match) {
       // If the match already has results, use them
-      if (matchToUse.results && matchToUse.results.length > 0) {
-        setResults(matchToUse.results);
+      if (match.results && match.results.length > 0) {
+        setResults(match.results);
       } else {
         // Otherwise initialize empty results for all teams
-        const initialResults: MatchResult[] = tourTeams.map(team => ({
+        const initialResults: MatchResult[] = currentTournament.teams.map(team => ({
           teamId: team.id,
           placement: 0,
           kills: 0,
@@ -45,11 +51,7 @@ const ResultsInput: React.FC<ResultsInputProps> = ({ matchId, match, teams, onCo
       }
       setIsDirty(false);
     }
-  }, [matchToUse, tourTeams]);
-
-  if (!matchToUse) {
-    return <div>Match not found</div>;
-  }
+  }, [match, currentTournament.teams]);
 
   const handlePlacementChange = (teamId: string, placement: number) => {
     setResults(prev => 
@@ -92,14 +94,13 @@ const ResultsInput: React.FC<ResultsInputProps> = ({ matchId, match, teams, onCo
     updateMatchResults(matchId, results);
     setIsDirty(false);
     if (onSave) onSave();
-    if (onComplete) onComplete();
   };
 
   return (
     <Card className="w-full">
       <CardHeader>
         <CardTitle className="text-xl">
-          Enter Results: {matchToUse.name}
+          Enter Results: {match.name}
         </CardTitle>
       </CardHeader>
       <CardContent>
@@ -116,7 +117,7 @@ const ResultsInput: React.FC<ResultsInputProps> = ({ matchId, match, teams, onCo
           </TableHeader>
           <TableBody>
             {results.map((result) => {
-              const team = tourTeams.find(t => t.id === result.teamId);
+              const team = currentTournament.teams.find(t => t.id === result.teamId);
               
               return (
                 <TableRow key={result.teamId}>
@@ -128,7 +129,7 @@ const ResultsInput: React.FC<ResultsInputProps> = ({ matchId, match, teams, onCo
                     <Input
                       type="number"
                       min="1"
-                      max={tourTeams.length}
+                      max={currentTournament.teams.length}
                       value={result.placement || ""}
                       onChange={(e) => handlePlacementChange(result.teamId, parseInt(e.target.value) || 0)}
                       className="w-20"

@@ -1,7 +1,7 @@
 
 import React from "react";
 import { Team, Match, Day } from "@/types";
-import { calculateOverallStandings } from "@/utils/pointCalculator";
+import { calculateOverallStandings, getWWCDCount } from "@/utils/pointCalculator";
 
 interface OverallStandingsProps {
   teams: Team[];
