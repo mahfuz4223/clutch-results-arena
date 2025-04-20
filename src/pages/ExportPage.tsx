@@ -6,13 +6,11 @@ import Layout from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Label } from "@/components/ui/label";
 import { ChevronLeft } from "lucide-react";
 import ResultCard from "@/components/export/ResultCard";
-import { getThemeById, THEME_OPTIONS } from "@/utils/themes";
+import CustomizationPanel from "@/components/export/CustomizationPanel";
+import { getThemeById } from "@/utils/themes";
+import { CustomizationOptions } from "@/types";
 
 const ExportPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -20,7 +18,17 @@ const ExportPage = () => {
   const [selectedDay, setSelectedDay] = useState<string>("all");
   const [selectedMatch, setSelectedMatch] = useState<string | null>(null);
   const [selectedFormat, setSelectedFormat] = useState<"day" | "match">("day");
-  const [selectedTheme, setSelectedTheme] = useState(THEME_OPTIONS[0].id);
+  const [customization, setCustomization] = useState<CustomizationOptions>({
+    theme: "pubg-official",
+    background: "dark-grid",
+    customCss: "",
+    cssPreset: "official",
+    showSponsors: true,
+    showGridLines: true,
+    showTencentLogo: true,
+    showPubgLogo: true,
+    showTournamentLogo: true
+  });
   
   // Select tournament if not already selected
   React.useEffect(() => {
@@ -48,6 +56,11 @@ const ExportPage = () => {
   const dayMatches = selectedDay === "all" 
     ? allMatches 
     : currentTournament.days.find(day => day.id === selectedDay)?.matches || [];
+
+  // Handle customization changes
+  const handleCustomizationChange = (newOptions: Partial<CustomizationOptions>) => {
+    setCustomization(prev => ({ ...prev, ...newOptions }));
+  };
 
   return (
     <Layout>
@@ -87,103 +100,30 @@ const ExportPage = () => {
           </Card>
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Options Panel */}
-            <Card className="lg:col-span-1">
-              <CardHeader>
-                <CardTitle>Export Options</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="space-y-3">
-                  <Label>Format</Label>
-                  <RadioGroup 
-                    value={selectedFormat} 
-                    onValueChange={(v) => setSelectedFormat(v as "day" | "match")}
-                    className="space-y-2"
-                  >
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="day" id="day" />
-                      <Label htmlFor="day">Day Results</Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="match" id="match" />
-                      <Label htmlFor="match">Single Match Results</Label>
-                    </div>
-                  </RadioGroup>
-                </div>
-
-                <div className="space-y-3">
-                  <Label>Data to Show</Label>
-                  {selectedFormat === "day" ? (
-                    <Select value={selectedDay} onValueChange={setSelectedDay}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select Day" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All Days (Overall)</SelectItem>
-                        {currentTournament.days.map(day => (
-                          <SelectItem key={day.id} value={day.id}>
-                            {day.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  ) : (
-                    <Select value={selectedMatch || ""} onValueChange={setSelectedMatch}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select Match" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {allMatches.map(match => (
-                          <SelectItem key={match.id} value={match.id}>
-                            {currentTournament.days.find(d => d.id === match.dayId)?.name}: {match.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  )}
-                </div>
-
-                <div className="space-y-3">
-                  <Label>Theme</Label>
-                  <Select value={selectedTheme} onValueChange={setSelectedTheme}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select Theme" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {THEME_OPTIONS.map(theme => (
-                        <SelectItem key={theme.id} value={theme.id}>
-                          {theme.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </CardContent>
-            </Card>
+            {/* Customization Panel */}
+            <CustomizationPanel 
+              options={customization} 
+              onChange={handleCustomizationChange}
+            />
 
             {/* Preview Panel */}
             <Card className="lg:col-span-2">
               <CardHeader>
                 <CardTitle>Preview</CardTitle>
               </CardHeader>
-              <CardContent>
-                {(selectedFormat === "match" && !selectedMatch) ? (
-                  <div className="text-center py-8">
-                    <p className="text-gray-500">Select a match to preview</p>
-                  </div>
-                ) : (
-                  <div className="flex justify-center">
-                    <ResultCard
-                      tournament={currentTournament.name}
-                      teams={currentTournament.teams}
-                      days={currentTournament.days}
-                      selectedDay={selectedDay}
-                      theme={getThemeById(selectedTheme)}
-                      format={selectedFormat}
-                      selectedMatch={selectedMatch || undefined}
-                    />
-                  </div>
-                )}
+              <CardContent className="overflow-auto">
+                <div className="flex justify-center">
+                  <ResultCard
+                    tournament={currentTournament.name}
+                    teams={currentTournament.teams}
+                    days={currentTournament.days}
+                    selectedDay={selectedDay}
+                    theme={getThemeById(customization.theme)}
+                    format={selectedFormat}
+                    selectedMatch={selectedMatch || undefined}
+                    customization={customization}
+                  />
+                </div>
               </CardContent>
             </Card>
           </div>

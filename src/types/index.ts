@@ -1,4 +1,3 @@
-
 export interface Team {
   id: string;
   name: string;
@@ -55,4 +54,16 @@ export interface ThemeOption {
   tableBg: string;
   borderColor: string;
   preview: string;
+}
+
+export interface CustomizationOptions {
+  theme: string;
+  background: string;
+  customCss: string;
+  cssPreset: string;
+  showSponsors: boolean;
+  showGridLines: boolean;
+  showTencentLogo: boolean;
+  showPubgLogo: boolean;
+  showTournamentLogo: boolean;
 }
