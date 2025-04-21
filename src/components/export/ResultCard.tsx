@@ -3,7 +3,7 @@ import React, { useRef, useState, useEffect } from "react";
 import { Team, Day, Match, ThemeOption, CustomizationOptions } from "@/types";
 import { calculateOverallStandings } from "@/utils/pointCalculator";
 import { Button } from "@/components/ui/button";
-import { Download, Share2, FileDown, Image } from "lucide-react";
+import { Download, Share2, FileDown, Image, Youtube, Facebook, Instagram, TikTok } from "lucide-react";
 import { getBackgroundById, getCssPresetById } from "@/utils/themes";
 import { toast } from "sonner";
 import { exportElementAsImage, downloadDataUrl } from "@/utils/imageExport";
@@ -59,8 +59,8 @@ const ResultCard: React.FC<ResultCardProps> = ({
     ? matches[0]?.name || "MATCH RESULTS"
     : dayTitle;
 
-  // Calculate standings
-  const standings = calculateOverallStandings(teams, matches);
+  // For PMGO 2025 title
+  const pmgoTitle = `2025 PMGO Prelims – ${matchTitle} [Day ${selectedDay === "all" ? "ALL" : selectedDay}]`;
 
   // Function to generate the image
   const generateImage = async (): Promise<string | null> => {
@@ -180,6 +180,9 @@ const ResultCard: React.FC<ResultCardProps> = ({
 
   // Get background image from customization
   const backgroundImage = getBackgroundById(customization.background);
+  
+  // Use PMGO style by default for this banner
+  const isPmgoStyle = true;
 
   return (
     <div className="relative">
@@ -189,13 +192,14 @@ const ResultCard: React.FC<ResultCardProps> = ({
         className={`result-card w-[1000px] h-[720px] rounded-lg overflow-hidden shadow-xl ${theme.background} relative`}
         style={{ 
           backgroundImage: backgroundImage ? 
-            `linear-gradient(to bottom, rgba(0,0,0,0.6), rgba(0,0,0,0.8)), url('${backgroundImage}')` :
-            undefined,
+            `linear-gradient(to bottom, rgba(0,0,0,0.7), rgba(0,0,0,0.85)), url('${backgroundImage}')` :
+            'linear-gradient(to bottom, #001a33, #000e1d)',
           backgroundSize: 'cover',
           backgroundPosition: 'center',
           backgroundBlendMode: 'overlay'
         }}
       >
+        {/* Grid Overlay */}
         {customization.showGridLines && (
           <div className="absolute inset-0 z-0 opacity-40">
             <img 
@@ -218,7 +222,7 @@ const ResultCard: React.FC<ResultCardProps> = ({
         )}
         
         {/* Left Side Character */}
-        <div className="absolute bottom-0 left-0 h-52 opacity-80 z-0 hidden md:block">
+        <div className="absolute bottom-0 left-0 h-52 opacity-70 z-0 hidden md:block">
           <img 
             src="/public/lovable-uploads/c774f54c-53d5-40d5-92ad-cbaa38bf1e99.png" 
             alt="PUBG Character" 
@@ -226,22 +230,45 @@ const ResultCard: React.FC<ResultCardProps> = ({
           />
         </div>
 
+        {/* Helicopter Graphic - Top Left */}
+        <div className="absolute top-5 left-5 h-20 opacity-70 z-0">
+          <img 
+            src="/public/lovable-uploads/8ec78efa-0c83-458a-b34d-11d6da1a7045.png" 
+            alt="Helicopter" 
+            className="h-full object-contain"
+          />
+        </div>
+
         {/* Header */}
         <div className="flex flex-col items-center justify-center pt-10 pb-6 relative z-10">
-          <div className="flex items-center mb-2">
-            {customization.showTournamentLogo && (
+          {customization.showTournamentLogo && (
+            <div className="flex items-center mb-3">
               <img 
                 src="/public/lovable-uploads/bd54bf89-10e1-438a-8bda-917ff62a1e6d.png" 
                 alt="PUBG Mobile" 
                 className="h-16 mr-4"
               />
-            )}
-            <div>
-              <h1 className={`header-title text-3xl font-bold uppercase ${theme.textColor} drop-shadow-lg`}>{tournament}</h1>
-              <div className={`h-1 w-full ${theme.accentColor} my-1 rounded-full`}></div>
             </div>
+          )}
+          
+          <div>
+            <h1 className="header-title text-3xl font-bold uppercase text-white drop-shadow-lg">
+              {isPmgoStyle ? (
+                <span className="bg-gradient-to-r from-blue-400 to-cyan-300 bg-clip-text text-transparent">
+                  {pmgoTitle}
+                </span>
+              ) : (
+                <span className={`${theme.textColor}`}>{tournament}</span>
+              )}
+            </h1>
+            <div className={`h-1 w-full ${isPmgoStyle ? 'bg-gradient-to-r from-blue-500 to-cyan-400' : theme.accentColor} my-1 rounded-full`}></div>
           </div>
-          <h2 className={`day-title text-3xl font-bold uppercase ${theme.textColor} mt-3 tracking-wider drop-shadow-lg px-4 py-1 ${theme.accentColor === 'bg-teal-400' ? 'border-2 border-teal-400' : ''}`}>{matchTitle}</h2>
+          
+          {!isPmgoStyle && (
+            <h2 className={`day-title text-3xl font-bold uppercase ${theme.textColor} mt-3 tracking-wider drop-shadow-lg px-4 py-1 ${theme.accentColor === 'bg-teal-400' ? 'border-2 border-teal-400' : ''}`}>
+              {matchTitle}
+            </h2>
+          )}
         </div>
 
         {/* Results Table */}
@@ -249,8 +276,12 @@ const ResultCard: React.FC<ResultCardProps> = ({
           <div className="flex justify-between gap-4">
             {/* Left Column */}
             <div className="w-[48%]">
-              <table className={`w-full border-collapse ${theme.textColor}`}>
-                <thead className={`table-header text-sm uppercase ${theme.headerBg} tracking-wider`}>
+              <table className={`w-full border-collapse ${isPmgoStyle ? 'text-white' : theme.textColor}`}>
+                <thead className={`table-header text-sm uppercase ${
+                  isPmgoStyle 
+                    ? 'bg-gradient-to-r from-blue-900 to-cyan-800 text-cyan-300' 
+                    : theme.headerBg
+                } tracking-wider`}>
                   <tr>
                     <th className="py-3 px-2 text-left">RANK</th>
                     <th className="py-3 px-2 text-left">TEAM</th>
@@ -265,13 +296,17 @@ const ResultCard: React.FC<ResultCardProps> = ({
                     <tr 
                       key={standing.teamId} 
                       className={`
-                        table-row ${theme.tableBg} border-b ${theme.borderColor}
-                        ${index === 0 ? "bg-yellow-900/30" : ""}
-                        ${index === 1 ? "bg-gray-500/20" : ""}
-                        ${index === 2 ? "bg-amber-800/20" : ""}
+                        table-row ${isPmgoStyle ? (index % 2 === 0 ? 'bg-blue-900/60' : 'bg-blue-900/40') : theme.tableBg} 
+                        border-b ${isPmgoStyle ? 'border-blue-700/30' : theme.borderColor}
+                        ${index === 0 && isPmgoStyle ? "bg-gradient-to-r from-yellow-700/30 to-amber-800/30" : ""}
+                        ${index === 1 && isPmgoStyle ? "bg-gradient-to-r from-gray-600/30 to-gray-700/30" : ""}
+                        ${index === 2 && isPmgoStyle ? "bg-gradient-to-r from-amber-700/30 to-amber-800/30" : ""}
+                        ${index === 0 && !isPmgoStyle ? "bg-yellow-900/30" : ""}
+                        ${index === 1 && !isPmgoStyle ? "bg-gray-500/20" : ""}
+                        ${index === 2 && !isPmgoStyle ? "bg-amber-800/20" : ""}
                       `}
                     >
-                      <td className="py-3 px-2 font-bold team-rank">#{standing.rank}</td>
+                      <td className={`py-3 px-2 font-bold team-rank ${isPmgoStyle ? 'text-cyan-300' : ''}`}>#{standing.rank}</td>
                       <td className="py-3 px-2 font-medium">
                         {standing.teamFlag && <span className="mr-2">{standing.teamFlag}</span>}
                         {standing.teamName}
@@ -279,7 +314,7 @@ const ResultCard: React.FC<ResultCardProps> = ({
                       <td className="py-3 px-2 text-center">{standing.wwcd}</td>
                       <td className="py-3 px-2 text-center">{standing.totalPlacementPoints}</td>
                       <td className="py-3 px-2 text-center">{standing.totalKills}</td>
-                      <td className="py-3 px-2 text-center font-bold total-points">{standing.totalPoints}</td>
+                      <td className={`py-3 px-2 text-center font-bold total-points ${isPmgoStyle ? 'text-cyan-300' : ''}`}>{standing.totalPoints}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -288,8 +323,12 @@ const ResultCard: React.FC<ResultCardProps> = ({
 
             {/* Right Column */}
             <div className="w-[48%]">
-              <table className={`w-full border-collapse ${theme.textColor}`}>
-                <thead className={`table-header text-sm uppercase ${theme.headerBg} tracking-wider`}>
+              <table className={`w-full border-collapse ${isPmgoStyle ? 'text-white' : theme.textColor}`}>
+                <thead className={`table-header text-sm uppercase ${
+                  isPmgoStyle 
+                    ? 'bg-gradient-to-r from-blue-900 to-cyan-800 text-cyan-300' 
+                    : theme.headerBg
+                } tracking-wider`}>
                   <tr>
                     <th className="py-3 px-2 text-left">RANK</th>
                     <th className="py-3 px-2 text-left">TEAM</th>
@@ -300,9 +339,15 @@ const ResultCard: React.FC<ResultCardProps> = ({
                   </tr>
                 </thead>
                 <tbody>
-                  {rightColumnStandings.map((standing) => (
-                    <tr key={standing.teamId} className={`table-row ${theme.tableBg} border-b ${theme.borderColor}`}>
-                      <td className="py-3 px-2 font-bold team-rank">#{standing.rank}</td>
+                  {rightColumnStandings.map((standing, index) => (
+                    <tr 
+                      key={standing.teamId} 
+                      className={`
+                        table-row ${isPmgoStyle ? (index % 2 === 0 ? 'bg-blue-900/60' : 'bg-blue-900/40') : theme.tableBg} 
+                        border-b ${isPmgoStyle ? 'border-blue-700/30' : theme.borderColor}
+                      `}
+                    >
+                      <td className={`py-3 px-2 font-bold team-rank ${isPmgoStyle ? 'text-cyan-300' : ''}`}>#{standing.rank}</td>
                       <td className="py-3 px-2 font-medium">
                         {standing.teamFlag && <span className="mr-2">{standing.teamFlag}</span>}
                         {standing.teamName}
@@ -310,7 +355,7 @@ const ResultCard: React.FC<ResultCardProps> = ({
                       <td className="py-3 px-2 text-center">{standing.wwcd}</td>
                       <td className="py-3 px-2 text-center">{standing.totalPlacementPoints}</td>
                       <td className="py-3 px-2 text-center">{standing.totalKills}</td>
-                      <td className="py-3 px-2 text-center font-bold total-points">{standing.totalPoints}</td>
+                      <td className={`py-3 px-2 text-center font-bold total-points ${isPmgoStyle ? 'text-cyan-300' : ''}`}>{standing.totalPoints}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -320,7 +365,11 @@ const ResultCard: React.FC<ResultCardProps> = ({
         </div>
 
         {/* Footer */}
-        <div className={`footer absolute bottom-0 left-0 right-0 flex justify-between items-center p-4 ${theme.headerBg}`}>
+        <div className={`footer absolute bottom-0 left-0 right-0 flex justify-between items-center p-4 ${
+          isPmgoStyle 
+            ? 'bg-gradient-to-r from-blue-900 to-cyan-900' 
+            : theme.headerBg
+        }`}>
           {customization.showTencentLogo && (
             <div className="flex items-center">
               <img 
@@ -331,7 +380,26 @@ const ResultCard: React.FC<ResultCardProps> = ({
               <span className="text-sm text-white/70">KRAFTON Inc.</span>
             </div>
           )}
-          <div className="text-sm text-white/70">© PUBG Mobile Tournament Maker</div>
+          
+          {/* Watch the Action Live with Social Media Icons */}
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-bold text-white">WATCH THE ACTION LIVE:</span>
+            <div className="flex gap-1">
+              <Badge variant="social" className="p-1 cursor-pointer">
+                <Youtube size={16} />
+              </Badge>
+              <Badge variant="social" className="p-1 cursor-pointer">
+                <Facebook size={16} />
+              </Badge>
+              <Badge variant="social" className="p-1 cursor-pointer">
+                <TikTok size={16} />
+              </Badge>
+              <Badge variant="social" className="p-1 cursor-pointer">
+                <Instagram size={16} />
+              </Badge>
+            </div>
+          </div>
+          
           {customization.showSponsors && (
             <div className="flex items-center">
               <img 
@@ -348,7 +416,7 @@ const ResultCard: React.FC<ResultCardProps> = ({
       <div className="mt-4 flex flex-wrap gap-2">
         <Button 
           onClick={downloadImage} 
-          className="bg-amber-600 hover:bg-amber-700 flex items-center gap-2"
+          className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 flex items-center gap-2"
           disabled={isGenerating}
         >
           <Download className="w-4 h-4" />

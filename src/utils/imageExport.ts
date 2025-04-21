@@ -30,19 +30,43 @@ export const exportElementAsImage = async (
     console.log("Starting image generation with options:", exportOptions);
     console.log("Element dimensions:", element.offsetWidth, "x", element.offsetHeight);
     
-    // Use more reliable approach with promises
+    // Add CSS class to prevent scrollbars during capture
+    element.classList.add('exporting');
+    
+    // Use more reliable approach with promises and delays
     return new Promise((resolve, reject) => {
       setTimeout(() => {
         toPng(element, exportOptions)
           .then(dataUrl => {
             console.log("Image generated successfully");
+            element.classList.remove('exporting');
             resolve(dataUrl);
           })
           .catch(error => {
             console.error("Error in toPng:", error);
-            reject(error);
+            element.classList.remove('exporting');
+            
+            // Try again with different settings if it fails
+            setTimeout(() => {
+              console.log("Retrying with simplified settings...");
+              toPng(element, {
+                ...exportOptions,
+                pixelRatio: 1,
+                canvasWidth: Math.min(element.offsetWidth, 1200),
+                canvasHeight: Math.min(element.offsetHeight, 900),
+                skipAutoScale: true
+              })
+                .then(dataUrl => {
+                  console.log("Retry successful");
+                  resolve(dataUrl);
+                })
+                .catch(retryError => {
+                  console.error("Retry failed:", retryError);
+                  reject(retryError);
+                });
+            }, 300);
           });
-      }, 200); // Small delay to ensure rendering is complete
+      }, 300); // Longer delay to ensure rendering is complete
     });
   } catch (error) {
     console.error("Error generating image:", error);
@@ -75,7 +99,20 @@ export const downloadDataUrl = (dataUrl: string, fileName: string): void => {
     toast.success(`${fileName} downloaded successfully!`);
   } catch (error) {
     console.error("Error downloading image:", error);
-    toast.error("Failed to download image. Please try copying the preview image instead.");
+    
+    // Fallback method if blob approach fails
+    try {
+      const link = document.createElement("a");
+      link.download = fileName;
+      link.href = dataUrl;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      toast.success(`${fileName} downloaded using fallback method!`);
+    } catch (fallbackError) {
+      console.error("Fallback download failed:", fallbackError);
+      toast.error("Failed to download image. Please try copying the preview image instead.");
+    }
   }
 };
 
