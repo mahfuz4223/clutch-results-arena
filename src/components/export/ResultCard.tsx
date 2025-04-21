@@ -3,7 +3,7 @@ import React, { useRef, useState, useEffect } from "react";
 import { Team, Day, Match, ThemeOption, CustomizationOptions } from "@/types";
 import { calculateOverallStandings } from "@/utils/pointCalculator";
 import { Button } from "@/components/ui/button";
-import { Download, Share2, FileDown } from "lucide-react";
+import { Download, Share2, FileDown, Image } from "lucide-react";
 import { getBackgroundById, getCssPresetById } from "@/utils/themes";
 import { toast } from "sonner";
 import { exportElementAsImage, downloadDataUrl } from "@/utils/imageExport";
@@ -65,7 +65,6 @@ const ResultCard: React.FC<ResultCardProps> = ({
   // Function to generate the image
   const generateImage = async (): Promise<string | null> => {
     setIsGenerating(true);
-    setImageDataUrl(null);
     
     try {
       if (!cardRef.current) {
@@ -73,33 +72,41 @@ const ResultCard: React.FC<ResultCardProps> = ({
         return null;
       }
       
-      console.log("Generating image...");
+      toast.info("Generating image...");
+      console.log("Starting image generation process");
       
-      // Wait a moment to ensure the component is fully rendered
-      await new Promise(resolve => setTimeout(resolve, 100));
+      // Wait for any state updates to complete
+      await new Promise(resolve => setTimeout(resolve, 300));
       
       const fileName = `${tournament}-${matchTitle.replace(/\s+/g, "-").toLowerCase()}.png`;
-      const dataUrl = await exportElementAsImage(cardRef.current, fileName, {
+      
+      // Set a fixed size for more consistent results
+      const exportOptions = {
         backgroundColor: "#000000",
-        style: {
-          transform: 'scale(1)',
-          transformOrigin: 'top left',
-          width: `${cardRef.current.offsetWidth}px`,
-          height: `${cardRef.current.offsetHeight}px`
-        }
-      });
+        quality: 1.0,
+        pixelRatio: 2,
+        skipAutoScale: false,
+        width: cardRef.current.offsetWidth,
+        height: cardRef.current.offsetHeight
+      };
+      
+      console.log("Using export options:", exportOptions);
+      
+      const dataUrl = await exportElementAsImage(cardRef.current, fileName, exportOptions);
       
       if (dataUrl) {
         setImageDataUrl(dataUrl);
         console.log("Image generated successfully!");
+        toast.success("Image generated successfully!");
         return dataUrl;
       } else {
         console.error("Failed to generate image dataUrl");
+        toast.error("Failed to generate image. Try refreshing the page.");
         return null;
       }
     } catch (error) {
       console.error("Error in generateImage:", error);
-      toast.error("Failed to generate image. Please try again");
+      toast.error("Failed to generate image. Please try again or use browser screenshot.");
       return null;
     } finally {
       setIsGenerating(false);
@@ -109,14 +116,23 @@ const ResultCard: React.FC<ResultCardProps> = ({
   // Function to download the image
   const downloadImage = async () => {
     try {
-      const dataUrl = imageDataUrl || await generateImage();
+      let dataUrl = imageDataUrl;
+      
+      // If no image has been generated yet, generate one first
+      if (!dataUrl) {
+        toast.info("Generating image before download...");
+        dataUrl = await generateImage();
+      }
+      
       if (dataUrl) {
         const fileName = `${tournament}-${matchTitle.replace(/\s+/g, "-").toLowerCase()}.png`;
         downloadDataUrl(dataUrl, fileName);
+      } else {
+        toast.error("Failed to generate image for download. Please try again.");
       }
     } catch (error) {
       console.error("Error downloading image:", error);
-      toast.error("Failed to download image. Please try again");
+      toast.error("Download failed. Try using the preview image.");
     }
   };
 
@@ -130,17 +146,26 @@ const ResultCard: React.FC<ResultCardProps> = ({
       }
       
       try {
-        await navigator.clipboard.writeText(dataUrl);
-        toast.success("Image copied to clipboard! You can paste it in other applications.");
-      } catch (err) {
-        // Fallback if clipboard API fails
-        const link = document.createElement("a");
-        link.download = `${tournament}-${matchTitle.replace(/\s+/g, "-").toLowerCase()}.png`;
-        link.href = dataUrl;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        toast.success("Image downloaded successfully!");
+        // For modern browsers with clipboard API
+        const blob = await fetch(dataUrl).then(r => r.blob());
+        await navigator.clipboard.write([
+          new ClipboardItem({
+            [blob.type]: blob
+          })
+        ]);
+        toast.success("Image copied to clipboard!");
+      } catch (clipboardErr) {
+        console.error("Clipboard API failed:", clipboardErr);
+        
+        // Fallback to text copying
+        try {
+          await navigator.clipboard.writeText(dataUrl);
+          toast.success("Image URL copied to clipboard!");
+        } catch (textErr) {
+          // Last resort: trigger download
+          const fileName = `${tournament}-${matchTitle.replace(/\s+/g, "-").toLowerCase()}.png`;
+          downloadDataUrl(dataUrl, fileName);
+        }
       }
     } catch (error) {
       console.error("Error sharing image:", error);
@@ -358,6 +383,7 @@ const ResultCard: React.FC<ResultCardProps> = ({
           disabled={isGenerating}
           className="flex items-center gap-2"
         >
+          <Image className="w-4 h-4" />
           {isGenerating ? "Generating..." : "Generate Preview"}
         </Button>
       </div>
@@ -365,14 +391,14 @@ const ResultCard: React.FC<ResultCardProps> = ({
       {/* Help Badge */}
       <div className="mt-3">
         <Badge variant="outline" className="bg-black/5">
-          Having troubles? Try clicking "Generate Preview" first, then "Download Image". Refresh the page if issues persist.
+          Having trouble? Try clicking "Generate Preview" first, then "Download Image". Refresh the page if issues persist.
         </Badge>
       </div>
       
       {/* Preview image if available */}
       {imageDataUrl && (
         <div className="mt-4 border rounded p-4">
-          <h3 className="text-sm font-medium mb-2">Preview (Right-click to save if download button doesn't work)</h3>
+          <h3 className="text-sm font-medium mb-2">Preview (Right-click to save as alternative download method)</h3>
           <img src={imageDataUrl} alt="Generated Preview" className="max-w-full h-auto" />
         </div>
       )}

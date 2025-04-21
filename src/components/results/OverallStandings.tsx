@@ -63,6 +63,9 @@ const OverallStandings: React.FC<OverallStandingsProps> = ({
                   ? `${index % 2 === 0 ? "bg-black/60" : "bg-black/40"} border-teal-700/30` 
                   : ""}
                 ${index < 3 ? "font-medium" : ""}
+                ${index === 0 && isPubgStyle ? "bg-yellow-900/30" : ""}
+                ${index === 1 && isPubgStyle ? "bg-gray-700/30" : ""}
+                ${index === 2 && isPubgStyle ? "bg-amber-800/30" : ""}
               `}
             >
               <td className={`px-3 py-2 font-bold ${isPubgStyle ? "border-r border-teal-700/30 text-teal-400" : ""}`}>
