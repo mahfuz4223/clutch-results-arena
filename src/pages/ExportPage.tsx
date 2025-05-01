@@ -98,11 +98,11 @@ const ExportPage = () => {
             </CardContent>
           </Card>
         ) : (
-          <Card>
-            <CardHeader>
-              <CardTitle>PUBG Mobile Tournament Results</CardTitle>
+          <Card className="shadow-lg border border-gray-100">
+            <CardHeader className="border-b border-gray-100">
+              <CardTitle className="text-xl">Tournament Results Export</CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="pt-6">
               <ResultExport
                 tournament={currentTournament.name}
                 teams={currentTournament.teams}
