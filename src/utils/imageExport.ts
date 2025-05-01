@@ -1,6 +1,7 @@
 
-import { toPng } from 'html-to-image';
+import { toJpeg, toPng } from 'html-to-image';
 import { toast } from 'sonner';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 /**
  * Utility function to export an HTML element as an image
@@ -8,7 +9,8 @@ import { toast } from 'sonner';
 export const exportElementAsImage = async (
   element: HTMLElement | null, 
   fileName: string,
-  options: any = {}
+  options: any = {},
+  format: 'png' | 'jpg' = 'jpg'
 ): Promise<string | null> => {
   if (!element) {
     toast.error("Could not find element to export");
@@ -39,8 +41,11 @@ export const exportElementAsImage = async (
       // Add longer timeout to ensure DOM is fully rendered
       setTimeout(async () => {
         try {
-          // Try with primary settings first
-          const dataUrl = await toPng(element, exportOptions);
+          // Use the selected format
+          const dataUrl = format === 'jpg' 
+            ? await toJpeg(element, exportOptions)
+            : await toPng(element, exportOptions);
+          
           element.classList.remove('exporting');
           console.log("Image generated successfully");
           resolve(dataUrl);
@@ -53,7 +58,7 @@ export const exportElementAsImage = async (
             try {
               const fallbackOptions = {
                 ...exportOptions,
-                pixelRatio: 1,
+                pixelRatio: 1.5,
                 skipAutoScale: true,
                 allowTaint: true,
                 useCORS: true,
@@ -62,7 +67,10 @@ export const exportElementAsImage = async (
               };
               
               console.log("Retrying with fallback settings:", fallbackOptions);
-              const dataUrl = await toPng(element, fallbackOptions);
+              const dataUrl = format === 'jpg'
+                ? await toJpeg(element, fallbackOptions)
+                : await toPng(element, fallbackOptions);
+                
               console.log("Fallback export successful");
               resolve(dataUrl);
             } catch (fallbackError) {
@@ -79,16 +87,19 @@ export const exportElementAsImage = async (
                 };
                 
                 console.log("Last resort attempt with minimal settings:", lastResortOptions);
-                const dataUrl = await toPng(element, lastResortOptions);
+                const dataUrl = format === 'jpg'
+                  ? await toJpeg(element, lastResortOptions)
+                  : await toPng(element, lastResortOptions);
+                  
                 resolve(dataUrl);
               } catch (lastError) {
                 console.error("All export attempts failed:", lastError);
                 reject(lastError);
               }
             }
-          }, 500);
+          }, 300);
         }
-      }, 500); // Longer initial delay
+      }, 300); // Shorter initial delay for better responsiveness
     });
   } catch (error) {
     console.error("Error generating image:", error);
@@ -193,4 +204,13 @@ const dataURLtoBlob = (dataURL: string): Blob => {
     
     return new Blob([ab], { type: mimeString });
   }
+};
+
+/**
+ * Hook to determine ideal image format based on device
+ */
+export const useImageFormat = () => {
+  const isMobile = useIsMobile();
+  // Use JPG for mobile (smaller file size), PNG for desktop (better quality)
+  return isMobile ? 'jpg' as const : 'jpg' as const;
 };

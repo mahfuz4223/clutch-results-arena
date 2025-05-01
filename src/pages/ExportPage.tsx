@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { ChevronLeft } from "lucide-react";
-import ResultCard from "@/components/export/ResultCard";
+import ResultExport from "@/components/export/ResultExport";
 import CustomizationPanel from "@/components/export/CustomizationPanel";
 import { getThemeById } from "@/utils/themes";
 import { CustomizationOptions } from "@/types";
@@ -73,9 +73,9 @@ const ExportPage = () => {
                   <ChevronLeft className="h-4 w-4" />
                 </Button>
               </Link>
-              <h1 className="text-3xl font-bold">Export Results</h1>
+              <h1 className="text-3xl font-bold">Tournament Results</h1>
             </div>
-            <p className="text-gray-500">Export and download {currentTournament.name} results</p>
+            <p className="text-gray-500">Export and share {currentTournament.name} results</p>
           </div>
         </div>
 
@@ -99,34 +99,22 @@ const ExportPage = () => {
             </CardContent>
           </Card>
         ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Customization Panel */}
-            <CustomizationPanel 
-              options={customization} 
-              onChange={handleCustomizationChange}
-            />
-
-            {/* Preview Panel */}
-            <Card className="lg:col-span-2">
-              <CardHeader>
-                <CardTitle>Preview</CardTitle>
-              </CardHeader>
-              <CardContent className="overflow-auto">
-                <div className="flex justify-center">
-                  <ResultCard
-                    tournament={currentTournament.name}
-                    teams={currentTournament.teams}
-                    days={currentTournament.days}
-                    selectedDay={selectedDay}
-                    theme={getThemeById(customization.theme)}
-                    format={selectedFormat}
-                    selectedMatch={selectedMatch || undefined}
-                    customization={customization}
-                  />
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+          <Card>
+            <CardHeader>
+              <CardTitle>PUBG Mobile Tournament Results</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ResultExport
+                tournament={currentTournament.name}
+                teams={currentTournament.teams}
+                days={currentTournament.days}
+                selectedDay={selectedDay}
+                format={selectedFormat}
+                selectedMatch={selectedMatch || undefined}
+                customization={customization}
+              />
+            </CardContent>
+          </Card>
         )}
       </div>
     </Layout>
