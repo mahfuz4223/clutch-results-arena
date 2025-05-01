@@ -16,7 +16,7 @@ export const exportElementAsImage = async (
   }
   
   try {
-    // Default options with improved settings
+    // Default options with improved settings for cross-browser compatibility
     const exportOptions = {
       quality: 0.95,
       backgroundColor: "#000000",
@@ -24,6 +24,7 @@ export const exportElementAsImage = async (
       canvasHeight: element.offsetHeight || 720,
       skipAutoScale: false,
       pixelRatio: 2, // Higher quality
+      cacheBust: true, // Prevent caching issues
       ...options
     };
     
@@ -33,40 +34,61 @@ export const exportElementAsImage = async (
     // Add CSS class to prevent scrollbars during capture
     element.classList.add('exporting');
     
-    // Use more reliable approach with promises and delays
+    // Wait for any pending renders to complete
     return new Promise((resolve, reject) => {
-      setTimeout(() => {
-        toPng(element, exportOptions)
-          .then(dataUrl => {
-            console.log("Image generated successfully");
-            element.classList.remove('exporting');
-            resolve(dataUrl);
-          })
-          .catch(error => {
-            console.error("Error in toPng:", error);
-            element.classList.remove('exporting');
-            
-            // Try again with different settings if it fails
-            setTimeout(() => {
-              console.log("Retrying with simplified settings...");
-              toPng(element, {
+      // Add longer timeout to ensure DOM is fully rendered
+      setTimeout(async () => {
+        try {
+          // Try with primary settings first
+          const dataUrl = await toPng(element, exportOptions);
+          element.classList.remove('exporting');
+          console.log("Image generated successfully");
+          resolve(dataUrl);
+        } catch (primaryError) {
+          console.error("Primary export attempt failed:", primaryError);
+          element.classList.remove('exporting');
+          
+          // Try again with more conservative settings
+          setTimeout(async () => {
+            try {
+              const fallbackOptions = {
                 ...exportOptions,
                 pixelRatio: 1,
+                skipAutoScale: true,
+                allowTaint: true,
+                useCORS: true,
                 canvasWidth: Math.min(element.offsetWidth, 1200),
-                canvasHeight: Math.min(element.offsetHeight, 900),
-                skipAutoScale: true
-              })
-                .then(dataUrl => {
-                  console.log("Retry successful");
-                  resolve(dataUrl);
-                })
-                .catch(retryError => {
-                  console.error("Retry failed:", retryError);
-                  reject(retryError);
-                });
-            }, 300);
-          });
-      }, 300); // Longer delay to ensure rendering is complete
+                canvasHeight: Math.min(element.offsetHeight, 900)
+              };
+              
+              console.log("Retrying with fallback settings:", fallbackOptions);
+              const dataUrl = await toPng(element, fallbackOptions);
+              console.log("Fallback export successful");
+              resolve(dataUrl);
+            } catch (fallbackError) {
+              console.error("Fallback export failed:", fallbackError);
+              
+              // Last resort: try with minimum settings
+              try {
+                const lastResortOptions = {
+                  cacheBust: true,
+                  pixelRatio: 1,
+                  backgroundColor: "#000000",
+                  width: element.offsetWidth,
+                  height: element.offsetHeight
+                };
+                
+                console.log("Last resort attempt with minimal settings:", lastResortOptions);
+                const dataUrl = await toPng(element, lastResortOptions);
+                resolve(dataUrl);
+              } catch (lastError) {
+                console.error("All export attempts failed:", lastError);
+                reject(lastError);
+              }
+            }
+          }, 500);
+        }
+      }, 500); // Longer initial delay
     });
   } catch (error) {
     console.error("Error generating image:", error);
@@ -76,7 +98,7 @@ export const exportElementAsImage = async (
 };
 
 /**
- * Download a data URL as a file
+ * Download a data URL as a file with improved browser compatibility
  */
 export const downloadDataUrl = (dataUrl: string, fileName: string): void => {
   try {
@@ -84,51 +106,91 @@ export const downloadDataUrl = (dataUrl: string, fileName: string): void => {
     const blob = dataURLtoBlob(dataUrl);
     const url = URL.createObjectURL(blob);
     
+    // Use browser-compatible download approach
     const link = document.createElement("a");
     link.download = fileName;
     link.href = url;
+    link.style.display = "none"; // Hide the link
     document.body.appendChild(link); // Need to append to body for Firefox
+    
+    // Use both click() and dispatchEvent for maximum compatibility
     link.click();
+    link.dispatchEvent(new MouseEvent("click", {
+      bubbles: true,
+      cancelable: true,
+      view: window
+    }));
     
     // Clean up
     setTimeout(() => {
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
-    }, 100);
+    }, 200);
     
     toast.success(`${fileName} downloaded successfully!`);
   } catch (error) {
     console.error("Error downloading image:", error);
     
-    // Fallback method if blob approach fails
+    // Fallback method using direct data URL
     try {
       const link = document.createElement("a");
       link.download = fileName;
       link.href = dataUrl;
+      link.target = "_blank";
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
       toast.success(`${fileName} downloaded using fallback method!`);
     } catch (fallbackError) {
-      console.error("Fallback download failed:", fallbackError);
-      toast.error("Failed to download image. Please try copying the preview image instead.");
+      // Last resort: open in new window
+      try {
+        const newWindow = window.open();
+        if (newWindow) {
+          newWindow.document.write(`<img src="${dataUrl}" alt="Generated Image" style="max-width:100%;">`);
+          newWindow.document.title = fileName;
+          newWindow.document.close();
+          toast.success(`Image opened in new tab. Right-click to save.`);
+        } else {
+          toast.error("Failed to open image. Please check popup blocker settings.");
+        }
+      } catch (finalError) {
+        console.error("All download attempts failed:", finalError);
+        toast.error("Failed to download. Please right-click the preview and use 'Save As'.");
+      }
     }
   }
 };
 
 /**
- * Convert a data URL to a Blob
+ * Convert a data URL to a Blob with improved browser compatibility
  */
 const dataURLtoBlob = (dataURL: string): Blob => {
-  const parts = dataURL.split(';base64,');
-  const contentType = parts[0].split(':')[1];
-  const raw = window.atob(parts[1]);
-  const rawLength = raw.length;
-  const uInt8Array = new Uint8Array(rawLength);
+  try {
+    // Standard method
+    const parts = dataURL.split(';base64,');
+    const contentType = parts[0].split(':')[1];
+    const raw = window.atob(parts[1]);
+    const rawLength = raw.length;
+    const uInt8Array = new Uint8Array(rawLength);
 
-  for (let i = 0; i < rawLength; ++i) {
-    uInt8Array[i] = raw.charCodeAt(i);
+    for (let i = 0; i < rawLength; ++i) {
+      uInt8Array[i] = raw.charCodeAt(i);
+    }
+
+    return new Blob([uInt8Array], { type: contentType });
+  } catch (error) {
+    console.error("Error creating blob from data URL:", error);
+    
+    // Fallback for older browsers
+    const byteString = atob(dataURL.split(',')[1]);
+    const mimeString = dataURL.split(',')[0].split(':')[1].split(';')[0];
+    const ab = new ArrayBuffer(byteString.length);
+    const ia = new Uint8Array(ab);
+    
+    for (let i = 0; i < byteString.length; i++) {
+      ia[i] = byteString.charCodeAt(i);
+    }
+    
+    return new Blob([ab], { type: mimeString });
   }
-
-  return new Blob([uInt8Array], { type: contentType });
 };

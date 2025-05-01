@@ -3,7 +3,7 @@ import React, { useRef, useState, useEffect } from "react";
 import { Team, Day, Match, ThemeOption, CustomizationOptions } from "@/types";
 import { calculateOverallStandings } from "@/utils/pointCalculator";
 import { Button } from "@/components/ui/button";
-import { Download, Share2, FileDown, Image, Youtube, Facebook, Instagram, MessageCircle } from "lucide-react";
+import { Download, Share2, FileDown, Image, Youtube, Facebook, Instagram, MessageCircle, AlertCircle } from "lucide-react";
 import { getBackgroundById, getCssPresetById } from "@/utils/themes";
 import { toast } from "sonner";
 import { exportElementAsImage, downloadDataUrl } from "@/utils/imageExport";
@@ -34,6 +34,8 @@ const ResultCard: React.FC<ResultCardProps> = ({
   const [customStyles, setCustomStyles] = useState<string>("");
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
   const [imageDataUrl, setImageDataUrl] = useState<string | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [browserInfo, setBrowserInfo] = useState<string>("");
 
   // Get day title
   const dayTitle = selectedDay === "all" 
@@ -57,6 +59,26 @@ const ResultCard: React.FC<ResultCardProps> = ({
   // For PMGO 2025 title
   const pmgoTitle = `2025 PMGO Prelims – ${matchTitle} [Day ${selectedDay === "all" ? "ALL" : selectedDay}]`;
 
+  // Detect browser information
+  useEffect(() => {
+    const userAgent = navigator.userAgent;
+    let browserName = "Unknown";
+    
+    if (userAgent.indexOf("Chrome") !== -1) {
+      browserName = "Chrome";
+    } else if (userAgent.indexOf("Firefox") !== -1) {
+      browserName = "Firefox";
+    } else if (userAgent.indexOf("Edge") !== -1) {
+      browserName = "Edge";
+    } else if (userAgent.indexOf("Safari") !== -1) {
+      browserName = "Safari";
+    } else if (userAgent.indexOf("Opera") !== -1 || userAgent.indexOf("OPR") !== -1) {
+      browserName = "Opera";
+    }
+    
+    setBrowserInfo(browserName);
+  }, []);
+
   useEffect(() => {
     if (customization.cssPreset && customization.cssPreset !== "none") {
       setCustomStyles(getCssPresetById(customization.cssPreset));
@@ -68,6 +90,7 @@ const ResultCard: React.FC<ResultCardProps> = ({
   // Function to generate the image
   const generateImage = async (): Promise<string | null> => {
     setIsGenerating(true);
+    setErrorMessage(null);
     
     try {
       if (!cardRef.current) {
@@ -75,25 +98,33 @@ const ResultCard: React.FC<ResultCardProps> = ({
         return null;
       }
       
-      toast.info("Generating image...");
+      toast.info(`Generating image for ${browserInfo}...`);
       console.log("Starting image generation process");
       
       // Wait for any state updates to complete
-      await new Promise(resolve => setTimeout(resolve, 300));
+      await new Promise(resolve => setTimeout(resolve, 500));
       
       const fileName = `${tournament}-${matchTitle.replace(/\s+/g, "-").toLowerCase()}.png`;
       
-      // Set a fixed size for more consistent results
+      // Set browser-specific options
       const exportOptions = {
         backgroundColor: "#000000",
         quality: 1.0,
         pixelRatio: 2,
         skipAutoScale: false,
+        cacheBust: true,
         width: cardRef.current.offsetWidth,
         height: cardRef.current.offsetHeight
       };
       
       console.log("Using export options:", exportOptions);
+      
+      // Show longer toast for Chrome users
+      if (browserInfo === "Chrome") {
+        toast.info("Chrome requires additional processing time. Please wait...", {
+          duration: 5000
+        });
+      }
       
       const dataUrl = await exportElementAsImage(cardRef.current, fileName, exportOptions);
       
@@ -104,12 +135,14 @@ const ResultCard: React.FC<ResultCardProps> = ({
         return dataUrl;
       } else {
         console.error("Failed to generate image dataUrl");
-        toast.error("Failed to generate image. Try refreshing the page.");
+        setErrorMessage("Image generation failed. Try using a different browser or the alternative method below.");
+        toast.error("Failed to generate image. Try using the preview image.");
         return null;
       }
     } catch (error) {
       console.error("Error in generateImage:", error);
-      toast.error("Failed to generate image. Please try again or use browser screenshot.");
+      setErrorMessage(`Error: ${error instanceof Error ? error.message : "Unknown error"}`);
+      toast.error("Image generation failed. Try the alternative method below.");
       return null;
     } finally {
       setIsGenerating(false);
@@ -131,12 +164,67 @@ const ResultCard: React.FC<ResultCardProps> = ({
         const fileName = `${tournament}-${matchTitle.replace(/\s+/g, "-").toLowerCase()}.png`;
         downloadDataUrl(dataUrl, fileName);
       } else {
-        toast.error("Failed to generate image for download. Please try again.");
+        toast.error("Failed to generate image for download. Please try using the screenshot alternative.");
+        setErrorMessage("Download failed. Please use the alternative method below.");
       }
     } catch (error) {
       console.error("Error downloading image:", error);
+      setErrorMessage("Download failed. Please use the screenshot alternative.");
       toast.error("Download failed. Try using the preview image.");
     }
+  };
+
+  // Function for alternative download method
+  const alternativeDownload = () => {
+    if (!cardRef.current) {
+      toast.error("Could not find the element to capture");
+      return;
+    }
+    
+    toast.info("Opening capture instructions...", { duration: 5000 });
+    
+    // Create instruction modal
+    const instructions = document.createElement('div');
+    instructions.style.position = 'fixed';
+    instructions.style.top = '50%';
+    instructions.style.left = '50%';
+    instructions.style.transform = 'translate(-50%, -50%)';
+    instructions.style.backgroundColor = 'rgba(0, 0, 0, 0.9)';
+    instructions.style.padding = '20px';
+    instructions.style.borderRadius = '10px';
+    instructions.style.zIndex = '9999';
+    instructions.style.color = 'white';
+    instructions.style.maxWidth = '450px';
+    instructions.style.boxShadow = '0 0 20px rgba(0, 0, 0, 0.5)';
+    
+    instructions.innerHTML = `
+      <h3 style="font-size: 16px; margin-bottom: 10px; color: #66ccff; font-weight: bold;">Screenshot Instructions</h3>
+      <p style="margin-bottom: 15px; font-size: 14px;">The automatic download didn't work. Please take a screenshot:</p>
+      <ul style="list-style-type: circle; padding-left: 20px; margin-bottom: 15px; font-size: 14px;">
+        <li style="margin-bottom: 5px;">Windows: Use <strong>Windows+Shift+S</strong> to capture</li>
+        <li style="margin-bottom: 5px;">Mac: Use <strong>Cmd+Shift+4</strong> to capture</li>
+        <li style="margin-bottom: 5px;">Or use your browser's screenshot tool</li>
+      </ul>
+      <p style="margin-bottom: 15px; font-size: 14px;">Capture the result card displayed on the page</p>
+      <button id="close-instructions" style="background: #3399ff; border: none; padding: 8px 15px; border-radius: 5px; color: white; cursor: pointer; font-weight: bold;">Got it</button>
+    `;
+    
+    document.body.appendChild(instructions);
+    
+    // Add event listener to close button
+    const closeButton = document.getElementById('close-instructions');
+    if (closeButton) {
+      closeButton.addEventListener('click', () => {
+        document.body.removeChild(instructions);
+      });
+    }
+    
+    // Auto-close after 10 seconds
+    setTimeout(() => {
+      if (document.body.contains(instructions)) {
+        document.body.removeChild(instructions);
+      }
+    }, 10000);
   };
 
   // Function to share/copy the image
@@ -209,6 +297,7 @@ const ResultCard: React.FC<ResultCardProps> = ({
               src="/public/lovable-uploads/ef62d711-f3b9-47c8-97a6-39cb861a0425.png" 
               alt="Grid Lines" 
               className="w-full h-full object-cover"
+              crossOrigin="anonymous"
             />
           </div>
         )}
@@ -220,6 +309,7 @@ const ResultCard: React.FC<ResultCardProps> = ({
               src="/public/lovable-uploads/bbd6b8ea-bb1e-4972-b550-d9f1b82ce551.png" 
               alt="PUBG Logo" 
               className="h-full object-contain"
+              crossOrigin="anonymous"
             />
           </div>
         )}
@@ -230,6 +320,7 @@ const ResultCard: React.FC<ResultCardProps> = ({
             src="/public/lovable-uploads/c774f54c-53d5-40d5-92ad-cbaa38bf1e99.png" 
             alt="PUBG Character" 
             className="h-full object-contain"
+            crossOrigin="anonymous"
           />
         </div>
 
@@ -239,6 +330,7 @@ const ResultCard: React.FC<ResultCardProps> = ({
             src="/public/lovable-uploads/8ec78efa-0c83-458a-b34d-11d6da1a7045.png" 
             alt="Helicopter" 
             className="h-full object-contain"
+            crossOrigin="anonymous"
           />
         </div>
 
@@ -250,6 +342,7 @@ const ResultCard: React.FC<ResultCardProps> = ({
                 src="/public/lovable-uploads/bd54bf89-10e1-438a-8bda-917ff62a1e6d.png" 
                 alt="PUBG Mobile" 
                 className="h-16 mr-4"
+                crossOrigin="anonymous"
               />
             </div>
           )}
@@ -379,6 +472,7 @@ const ResultCard: React.FC<ResultCardProps> = ({
                 src="/public/lovable-uploads/49b6f4b0-4b79-45ae-a219-75aae6f4d80b.png" 
                 alt="Tencent" 
                 className="h-6 mr-2"
+                crossOrigin="anonymous"
               />
               <span className="text-sm text-white/70">KRAFTON Inc.</span>
             </div>
@@ -409,6 +503,7 @@ const ResultCard: React.FC<ResultCardProps> = ({
                 src="/public/lovable-uploads/bd54bf89-10e1-438a-8bda-917ff62a1e6d.png" 
                 alt="PUBG Mobile" 
                 className="h-8 mr-2" 
+                crossOrigin="anonymous"
               />
               <span className="text-sm text-white/70">Official Tournament Results</span>
             </div>
@@ -416,6 +511,7 @@ const ResultCard: React.FC<ResultCardProps> = ({
         </div>
       </div>
 
+      {/* Download and Options */}
       <div className="mt-4 flex flex-wrap gap-2">
         <Button 
           onClick={downloadImage} 
@@ -433,46 +529,68 @@ const ResultCard: React.FC<ResultCardProps> = ({
           className="flex items-center gap-2"
         >
           <Share2 className="w-4 h-4" />
-          Share
-        </Button>
-        
-        <Button
-          onClick={() => {
-            navigator.clipboard.writeText(customStyles);
-            toast.success("CSS copied to clipboard!");
-          }}
-          variant="secondary"
-          className="flex items-center gap-2"
-        >
-          <FileDown className="w-4 h-4" />
-          Copy CSS
+          Copy to Clipboard
         </Button>
         
         <Button
           onClick={generateImage}
-          variant="outline"
+          variant="secondary"
           disabled={isGenerating}
           className="flex items-center gap-2"
         >
           <Image className="w-4 h-4" />
           {isGenerating ? "Generating..." : "Generate Preview"}
         </Button>
+        
+        <Button
+          onClick={alternativeDownload}
+          variant="outline"
+          className="flex items-center gap-2"
+        >
+          <AlertCircle className="w-4 h-4" />
+          Screenshot Help
+        </Button>
       </div>
+      
+      {/* Error Message and Browser Info */}
+      {errorMessage && (
+        <div className="mt-3">
+          <Badge variant="error" className="text-sm py-1.5 px-3 flex items-center gap-1.5">
+            <AlertCircle className="h-4 w-4" />
+            {errorMessage}
+          </Badge>
+        </div>
+      )}
       
       {/* Help Badge */}
       <div className="mt-3">
-        <Badge variant="outline" className="bg-black/5">
-          Having trouble? Try clicking "Generate Preview" first, then "Download Image". Refresh the page if issues persist.
+        <Badge variant="help" className="text-sm py-1.5 px-3 flex items-center gap-1.5">
+          <p>
+            Using {browserInfo}? Try these steps:
+            1) Click "Generate Preview" 
+            2) If successful, click "Download" 
+            3) If that fails, use "Screenshot Help" or right-click the preview image below
+          </p>
         </Badge>
       </div>
       
       {/* Preview image if available */}
       {imageDataUrl && (
         <div className="mt-4 border rounded p-4">
-          <h3 className="text-sm font-medium mb-2">Preview (Right-click to save as alternative download method)</h3>
-          <img src={imageDataUrl} alt="Generated Preview" className="max-w-full h-auto" />
+          <h3 className="text-sm font-medium mb-2">Preview Image (Right-click to save)</h3>
+          <img 
+            src={imageDataUrl} 
+            alt="Generated Preview" 
+            className="max-w-full h-auto"
+            style={{ maxHeight: "500px" }}
+          />
         </div>
       )}
+      
+      {/* Browser-specific help */}
+      <div className="mt-4 text-sm text-gray-500">
+        <p>Detected browser: {browserInfo}</p>
+      </div>
     </div>
   );
 };

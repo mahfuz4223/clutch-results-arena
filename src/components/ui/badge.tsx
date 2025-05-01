@@ -22,6 +22,10 @@ const badgeVariants = cva(
           "border-transparent bg-amber-500 text-white hover:bg-amber-600",
         social:
           "border-transparent bg-white/10 text-white hover:bg-white/20 backdrop-blur-sm",
+        error:
+          "border-transparent bg-red-500/10 text-red-500 hover:bg-red-500/20 border border-red-500/30",
+        help:
+          "border-transparent bg-blue-500/10 text-blue-500 hover:bg-blue-500/20 border border-blue-500/30",
       },
     },
     defaultVariants: {
