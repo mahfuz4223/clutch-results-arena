@@ -3,7 +3,7 @@ import React, { useRef, useState, useEffect } from "react";
 import { Team, Day, Match, ThemeOption, CustomizationOptions } from "@/types";
 import { calculateOverallStandings } from "@/utils/pointCalculator";
 import { Button } from "@/components/ui/button";
-import { Download, Share2, FileDown, Image, Youtube, Facebook, Instagram, TikTok } from "lucide-react";
+import { Download, Share2, FileDown, Image, Youtube, Facebook, Instagram, MessageCircle } from "lucide-react";
 import { getBackgroundById, getCssPresetById } from "@/utils/themes";
 import { toast } from "sonner";
 import { exportElementAsImage, downloadDataUrl } from "@/utils/imageExport";
@@ -35,14 +35,6 @@ const ResultCard: React.FC<ResultCardProps> = ({
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
   const [imageDataUrl, setImageDataUrl] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (customization.cssPreset && customization.cssPreset !== "none") {
-      setCustomStyles(getCssPresetById(customization.cssPreset));
-    } else {
-      setCustomStyles(customization.customCss || "");
-    }
-  }, [customization.cssPreset, customization.customCss]);
-
   // Get day title
   const dayTitle = selectedDay === "all" 
     ? "OVERALL STANDINGS" 
@@ -59,8 +51,19 @@ const ResultCard: React.FC<ResultCardProps> = ({
     ? matches[0]?.name || "MATCH RESULTS"
     : dayTitle;
 
+  // Calculate standings 
+  const standings = calculateOverallStandings(teams, matches);
+
   // For PMGO 2025 title
   const pmgoTitle = `2025 PMGO Prelims – ${matchTitle} [Day ${selectedDay === "all" ? "ALL" : selectedDay}]`;
+
+  useEffect(() => {
+    if (customization.cssPreset && customization.cssPreset !== "none") {
+      setCustomStyles(getCssPresetById(customization.cssPreset));
+    } else {
+      setCustomStyles(customization.customCss || "");
+    }
+  }, [customization.cssPreset, customization.customCss]);
 
   // Function to generate the image
   const generateImage = async (): Promise<string | null> => {
@@ -392,7 +395,7 @@ const ResultCard: React.FC<ResultCardProps> = ({
                 <Facebook size={16} />
               </Badge>
               <Badge variant="social" className="p-1 cursor-pointer">
-                <TikTok size={16} />
+                <MessageCircle size={16} />
               </Badge>
               <Badge variant="social" className="p-1 cursor-pointer">
                 <Instagram size={16} />
