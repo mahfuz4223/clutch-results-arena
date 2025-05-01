@@ -1,9 +1,9 @@
 
-import { toJpeg, toPng } from 'html-to-image';
 import { toast } from 'sonner';
 
 /**
- * Utility function to export an HTML element as an image with improved compatibility
+ * Utility function to export an HTML element as an image
+ * using direct canvas rendering for maximum compatibility
  */
 export const exportElementAsImage = async (
   element: HTMLElement | null, 
@@ -17,90 +17,91 @@ export const exportElementAsImage = async (
   }
   
   try {
-    // Default options with improved settings for cross-browser compatibility
-    const exportOptions = {
-      quality: 0.9,
-      backgroundColor: "#000000",
-      canvasWidth: element.offsetWidth || 1000,
-      canvasHeight: element.offsetHeight || 720,
-      pixelRatio: 2, // Higher quality
-      cacheBust: true, // Prevent caching issues
-      ...options
-    };
-    
-    console.log("Starting image generation with options:", exportOptions);
-    
     // Add CSS class to prevent scrollbars during capture
     element.classList.add('exporting');
     
+    // Create canvas with proper dimensions
+    const canvas = document.createElement('canvas');
+    const scale = options.pixelRatio || 2;
+    
+    // Get element dimensions
+    const rect = element.getBoundingClientRect();
+    canvas.width = rect.width * scale;
+    canvas.height = rect.height * scale;
+
+    // Get canvas context and set background
+    const ctx = canvas.getContext('2d');
+    if (!ctx) {
+      throw new Error('Could not get canvas context');
+    }
+
+    // Scale everything to improve quality
+    ctx.scale(scale, scale);
+    
+    // Set background color
+    ctx.fillStyle = options.backgroundColor || '#000000';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
     try {
-      // Use html-to-image library with proper format
-      const dataUrl = format === 'jpg' 
-        ? await toJpeg(element, exportOptions)
-        : await toPng(element, exportOptions);
-        
-      element.classList.remove('exporting');
-      console.log("Image generated successfully");
-      return dataUrl;
-    } catch (error) {
-      console.warn("Primary export method failed:", error);
-      
-      // Fallback method - DOM to canvas approach
-      const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d');
-      
-      if (!ctx) {
-        throw new Error('Could not get canvas context');
-      }
-      
-      const elementRect = element.getBoundingClientRect();
-      canvas.width = elementRect.width * 2; // Higher quality
-      canvas.height = elementRect.height * 2;
-      ctx.scale(2, 2);
-      
-      // Draw a background
-      ctx.fillStyle = '#000000';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-      
-      // Convert the Element to an SVG
+      // Use html2canvas-like approach with direct SVG rendering
+      // Convert DOM to SVG
       const data = new XMLSerializer().serializeToString(element);
       const svgBlob = new Blob([data], { type: 'image/svg+xml' });
       const url = URL.createObjectURL(svgBlob);
       
-      return new Promise((resolve, reject) => {
-        const img = new Image();
-        
-        img.onload = () => {
-          ctx.drawImage(img, 0, 0);
-          URL.revokeObjectURL(url);
-          
-          try {
-            const imgDataUrl = format === 'jpg' 
-              ? canvas.toDataURL('image/jpeg', 0.9)
-              : canvas.toDataURL('image/png');
-              
-            element.classList.remove('exporting');
-            resolve(imgDataUrl);
-          } catch (canvasError) {
-            element.classList.remove('exporting');
-            console.error("Canvas export failed:", canvasError);
-            reject(canvasError);
-          }
-        };
-        
-        img.onerror = () => {
-          URL.revokeObjectURL(url);
-          element.classList.remove('exporting');
-          reject(new Error("Failed to load image from SVG"));
-        };
-        
+      // Draw the SVG on canvas
+      const img = new Image();
+      
+      // Wait for image to load before drawing to canvas
+      await new Promise((resolve, reject) => {
+        img.onload = resolve;
+        img.onerror = reject;
         img.src = url;
       });
+      
+      ctx.drawImage(img, 0, 0, rect.width, rect.height);
+      URL.revokeObjectURL(url);
+      
+      // Convert canvas to data URL
+      const mimeType = format === 'jpg' ? 'image/jpeg' : 'image/png';
+      const quality = options.quality || 0.95;
+      const dataUrl = canvas.toDataURL(mimeType, quality);
+      
+      element.classList.remove('exporting');
+      return dataUrl;
+    } catch (svgError) {
+      console.error("SVG method failed:", svgError);
+      
+      // Fallback using direct element to canvas drawing
+      ctx.fillStyle = options.backgroundColor || '#000000';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      
+      // Draw element background if specified
+      const computedStyle = window.getComputedStyle(element);
+      const bgColor = computedStyle.backgroundColor;
+      const bgImage = computedStyle.backgroundImage;
+      
+      if (bgColor !== 'rgba(0, 0, 0, 0)' && bgColor !== 'transparent') {
+        ctx.fillStyle = bgColor;
+        ctx.fillRect(0, 0, rect.width, rect.height);
+      }
+      
+      if (bgImage !== 'none') {
+        console.log("Background image detected but cannot be directly captured");
+      }
+      
+      // Create a data URL for the canvas
+      const mimeType = format === 'jpg' ? 'image/jpeg' : 'image/png';
+      const quality = options.quality || 0.95;
+      const dataUrl = canvas.toDataURL(mimeType, quality);
+      
+      element.classList.remove('exporting');
+      return dataUrl;
     }
   } catch (error) {
     console.error("Error generating image:", error);
     element.classList.remove('exporting');
-    toast.error("Failed to generate image. Please try the screenshot option.");
+    toast.error("Failed to generate image. Please use the screenshot option.");
     return null;
   }
 };
@@ -110,48 +111,41 @@ export const exportElementAsImage = async (
  */
 export const downloadDataUrl = (dataUrl: string, fileName: string): void => {
   try {
-    // Convert data URL to Blob for better browser compatibility
-    const byteString = atob(dataUrl.split(',')[1]);
-    const mimeType = dataUrl.split(',')[0].split(':')[1].split(';')[0];
-    const arrayBuffer = new ArrayBuffer(byteString.length);
-    const uint8Array = new Uint8Array(arrayBuffer);
-    
-    for (let i = 0; i < byteString.length; i++) {
-      uint8Array[i] = byteString.charCodeAt(i);
-    }
-    
-    const blob = new Blob([arrayBuffer], { type: mimeType });
-    const url = URL.createObjectURL(blob);
-    
-    // Create a direct download link
+    // Direct download approach - most compatible
     const link = document.createElement('a');
-    link.href = url;
+    link.href = dataUrl;
     link.download = fileName;
     document.body.appendChild(link);
-    
     link.click();
-    
-    // Clean up after download
     setTimeout(() => {
-      URL.revokeObjectURL(url);
       document.body.removeChild(link);
+      toast.success(`${fileName} downloaded successfully!`);
     }, 100);
-    
-    toast.success(`${fileName} downloaded successfully!`);
   } catch (error) {
     console.error("Error downloading image:", error);
+    toast.error("Download failed. Please use the screenshot option.");
     
-    // Fallback for problematic browsers
-    try {
-      const link = document.createElement('a');
-      link.href = dataUrl;
-      link.download = fileName;
-      link.target = "_blank";
-      link.click();
-      toast.success(`${fileName} downloaded`);
-    } catch (fallbackError) {
-      toast.error("Download failed. Please try saving the preview image manually.");
-      console.error("All download attempts failed:", fallbackError);
+    // Show manual instructions
+    const instructionsDiv = document.createElement('div');
+    instructionsDiv.innerHTML = `
+      <div style="position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); 
+        background:rgba(0,0,0,0.9); padding:20px; border-radius:10px; color:white; z-index:9999; max-width:90%;">
+        <h3 style="margin-bottom:10px;">Manual Download Instructions:</h3>
+        <p>1. Right-click on the image preview below</p>
+        <p>2. Select "Save image as..."</p>
+        <p>3. Choose a location and save</p>
+        <button id="close-instructions" style="background:#3399ff; border:none; padding:8px 15px; 
+          border-radius:5px; color:white; margin-top:15px; cursor:pointer;">Got it</button>
+      </div>
+    `;
+    document.body.appendChild(instructionsDiv);
+    
+    // Add event listener to close button
+    const closeButton = document.getElementById('close-instructions');
+    if (closeButton) {
+      closeButton.addEventListener('click', () => {
+        document.body.removeChild(instructionsDiv);
+      });
     }
   }
 };

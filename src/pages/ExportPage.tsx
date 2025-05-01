@@ -15,10 +15,9 @@ const ExportPage = () => {
   const { id } = useParams<{ id: string }>();
   const { selectTournament, currentTournament } = useTournament();
   const [selectedDay, setSelectedDay] = useState<string>("all");
-  const [selectedMatch, setSelectedMatch] = useState<string | null>(null);
   const [selectedFormat, setSelectedFormat] = useState<"day" | "match">("day");
   const [customization, setCustomization] = useState<CustomizationOptions>({
-    theme: "pubg-official",
+    theme: "pink-esports",
     background: "dark-grid",
     customCss: "",
     cssPreset: "official",
@@ -52,15 +51,7 @@ const ExportPage = () => {
   }
 
   const allMatches = currentTournament.days.flatMap(day => day.matches);
-  const dayMatches = selectedDay === "all" 
-    ? allMatches 
-    : currentTournament.days.find(day => day.id === selectedDay)?.matches || [];
-
-  // Handle customization changes
-  const handleCustomizationChange = (newOptions: Partial<CustomizationOptions>) => {
-    setCustomization(prev => ({ ...prev, ...newOptions }));
-  };
-
+  
   return (
     <Layout>
       <div className="space-y-6">
@@ -109,7 +100,6 @@ const ExportPage = () => {
                 days={currentTournament.days}
                 selectedDay={selectedDay}
                 format={selectedFormat}
-                selectedMatch={selectedMatch || undefined}
                 customization={customization}
               />
             </CardContent>
