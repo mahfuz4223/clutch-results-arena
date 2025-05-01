@@ -4,7 +4,7 @@ import { toast } from 'sonner';
 import { useIsMobile } from '@/hooks/use-mobile';
 
 /**
- * Utility function to export an HTML element as an image
+ * Utility function to export an HTML element as an image with multi-level fallbacks
  */
 export const exportElementAsImage = async (
   element: HTMLElement | null, 
@@ -36,71 +36,118 @@ export const exportElementAsImage = async (
     // Add CSS class to prevent scrollbars during capture
     element.classList.add('exporting');
     
-    // Wait for any pending renders to complete
-    return new Promise((resolve, reject) => {
-      // Add longer timeout to ensure DOM is fully rendered
-      setTimeout(async () => {
+    try {
+      // Use canvas-based fallback approach for more reliable cross-browser support
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      
+      if (!ctx) {
+        throw new Error('Could not get canvas context');
+      }
+      
+      // Set canvas dimensions
+      canvas.width = exportOptions.canvasWidth * exportOptions.pixelRatio;
+      canvas.height = exportOptions.canvasHeight * exportOptions.pixelRatio;
+      
+      // Scale canvas for higher quality
+      ctx.scale(exportOptions.pixelRatio, exportOptions.pixelRatio);
+      
+      // Fill background color
+      ctx.fillStyle = exportOptions.backgroundColor;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      
+      // Try using html-to-image first
+      try {
+        const dataUrl = format === 'jpg' 
+          ? await toJpeg(element, exportOptions)
+          : await toPng(element, exportOptions);
+          
+        element.classList.remove('exporting');
+        console.log("Image generated successfully");
+        return dataUrl;
+      } catch (error) {
+        console.warn("Primary export method failed, trying alternative approach:", error);
+        
+        // Try alternative html-to-image approach with different settings
         try {
-          // Use the selected format
+          const fallbackOptions = {
+            ...exportOptions,
+            pixelRatio: 1.5,
+            allowTaint: true,
+            useCORS: true,
+            cacheBust: true
+          };
+          
           const dataUrl = format === 'jpg' 
-            ? await toJpeg(element, exportOptions)
-            : await toPng(element, exportOptions);
-          
+            ? await toJpeg(element, fallbackOptions)
+            : await toPng(element, fallbackOptions);
+            
           element.classList.remove('exporting');
-          console.log("Image generated successfully");
-          resolve(dataUrl);
-        } catch (primaryError) {
-          console.error("Primary export attempt failed:", primaryError);
-          element.classList.remove('exporting');
+          console.log("Alternative export successful");
+          return dataUrl;
+        } catch (fallbackError) {
+          console.warn("Alternative export failed, using last resort method:", fallbackError);
           
-          // Try again with more conservative settings
-          setTimeout(async () => {
-            try {
-              const fallbackOptions = {
-                ...exportOptions,
-                pixelRatio: 1.5,
-                skipAutoScale: true,
-                allowTaint: true,
-                useCORS: true,
-                canvasWidth: Math.min(element.offsetWidth, 1200),
-                canvasHeight: Math.min(element.offsetHeight, 900)
+          // Last resort: Use browser's native capabilities
+          try {
+            // Convert element to SVG for better quality in this fallback
+            const svgData = `<svg xmlns="http://www.w3.org/2000/svg" width="${element.offsetWidth}" height="${element.offsetHeight}">
+              <foreignObject width="100%" height="100%">
+                <div xmlns="http://www.w3.org/1999/xhtml">
+                  ${element.outerHTML}
+                </div>
+              </foreignObject>
+            </svg>`;
+            
+            const img = new Image();
+            
+            // Create a data URL from the SVG
+            const svgBlob = new Blob([svgData], { type: 'image/svg+xml' });
+            const url = URL.createObjectURL(svgBlob);
+            
+            // Return a promise that resolves with the final data URL
+            return new Promise((resolve, reject) => {
+              img.onload = () => {
+                // Draw the image onto the canvas
+                ctx.drawImage(img, 0, 0);
+                
+                // Convert canvas to data URL
+                try {
+                  const finalDataUrl = format === 'jpg' 
+                    ? canvas.toDataURL('image/jpeg', exportOptions.quality)
+                    : canvas.toDataURL('image/png');
+                    
+                  element.classList.remove('exporting');
+                  URL.revokeObjectURL(url);
+                  resolve(finalDataUrl);
+                } catch (canvasError) {
+                  console.error("Canvas export failed:", canvasError);
+                  element.classList.remove('exporting');
+                  URL.revokeObjectURL(url);
+                  reject(canvasError);
+                }
               };
               
-              console.log("Retrying with fallback settings:", fallbackOptions);
-              const dataUrl = format === 'jpg'
-                ? await toJpeg(element, fallbackOptions)
-                : await toPng(element, fallbackOptions);
-                
-              console.log("Fallback export successful");
-              resolve(dataUrl);
-            } catch (fallbackError) {
-              console.error("Fallback export failed:", fallbackError);
+              img.onerror = (err) => {
+                console.error("Image loading failed:", err);
+                element.classList.remove('exporting');
+                URL.revokeObjectURL(url);
+                reject(new Error("Failed to load image for canvas"));
+              };
               
-              // Last resort: try with minimum settings
-              try {
-                const lastResortOptions = {
-                  cacheBust: true,
-                  pixelRatio: 1,
-                  backgroundColor: "#000000",
-                  width: element.offsetWidth,
-                  height: element.offsetHeight
-                };
-                
-                console.log("Last resort attempt with minimal settings:", lastResortOptions);
-                const dataUrl = format === 'jpg'
-                  ? await toJpeg(element, lastResortOptions)
-                  : await toPng(element, lastResortOptions);
-                  
-                resolve(dataUrl);
-              } catch (lastError) {
-                console.error("All export attempts failed:", lastError);
-                reject(lastError);
-              }
-            }
-          }, 300);
+              img.src = url;
+            });
+          } catch (lastError) {
+            element.classList.remove('exporting');
+            console.error("All export methods failed:", lastError);
+            throw lastError;
+          }
         }
-      }, 300); // Shorter initial delay for better responsiveness
-    });
+      }
+    } finally {
+      // Ensure we always remove the class
+      element.classList.remove('exporting');
+    }
   } catch (error) {
     console.error("Error generating image:", error);
     toast.error("Failed to generate image. Please try again later.");
@@ -113,96 +160,104 @@ export const exportElementAsImage = async (
  */
 export const downloadDataUrl = (dataUrl: string, fileName: string): void => {
   try {
-    // Create blob from data URL for more reliable downloads
-    const blob = dataURLtoBlob(dataUrl);
-    const url = URL.createObjectURL(blob);
+    // Check if browser is mobile
+    const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
     
-    // Use browser-compatible download approach
-    const link = document.createElement("a");
-    link.download = fileName;
-    link.href = url;
-    link.style.display = "none"; // Hide the link
-    document.body.appendChild(link); // Need to append to body for Firefox
-    
-    // Use both click() and dispatchEvent for maximum compatibility
-    link.click();
-    link.dispatchEvent(new MouseEvent("click", {
-      bubbles: true,
-      cancelable: true,
-      view: window
-    }));
-    
-    // Clean up
-    setTimeout(() => {
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
-    }, 200);
-    
-    toast.success(`${fileName} downloaded successfully!`);
+    if (isMobileDevice) {
+      // Mobile browsers need special handling
+      try {
+        // Try to use the download attribute first
+        const link = document.createElement('a');
+        link.href = dataUrl;
+        link.download = fileName;
+        link.style.display = 'none';
+        document.body.appendChild(link);
+        link.click();
+        
+        // Clean up
+        setTimeout(() => {
+          URL.revokeObjectURL(link.href);
+          document.body.removeChild(link);
+          toast.success(`${fileName} downloaded successfully!`);
+        }, 100);
+      } catch (mobileError) {
+        console.warn("Mobile download failed, trying direct method:", mobileError);
+        
+        // Open in new tab for mobile browsers that don't support download attribute
+        const newWindow = window.open();
+        if (newWindow) {
+          newWindow.document.write(`
+            <html>
+              <head>
+                <title>${fileName}</title>
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <style>
+                  body { margin: 0; padding: 16px; text-align: center; background: #000; color: #fff; font-family: sans-serif; }
+                  img { max-width: 100%; height: auto; margin-bottom: 20px; }
+                  .instructions { padding: 15px; background: rgba(255,255,255,0.1); border-radius: 8px; margin-bottom: 20px; }
+                  .button { display: inline-block; padding: 10px 20px; background: #d50270; color: white; text-decoration: none; border-radius: 4px; font-weight: bold; }
+                </style>
+              </head>
+              <body>
+                <h2>Your PUBG Mobile Tournament Results</h2>
+                <div class="instructions">
+                  <p>Press and hold the image below, then select "Save Image" or "Download Image"</p>
+                </div>
+                <img src="${dataUrl}" alt="Tournament Results">
+                <p><a class="button" href="${dataUrl}" download="${fileName}">Download Image</a></p>
+              </body>
+            </html>
+          `);
+          newWindow.document.close();
+          toast.success("Image opened for download. Press and hold to save.");
+        } else {
+          toast.error("Popup blocked. Please allow popups and try again.");
+        }
+      }
+    } else {
+      // Desktop browsers - use blob for more reliable downloads
+      const byteString = atob(dataUrl.split(',')[1]);
+      const mimeType = dataUrl.split(',')[0].split(':')[1].split(';')[0];
+      const arrayBuffer = new ArrayBuffer(byteString.length);
+      const uint8Array = new Uint8Array(arrayBuffer);
+      
+      for (let i = 0; i < byteString.length; i++) {
+        uint8Array[i] = byteString.charCodeAt(i);
+      }
+      
+      const blob = new Blob([arrayBuffer], { type: mimeType });
+      const url = URL.createObjectURL(blob);
+      
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = fileName;
+      link.style.display = 'none';
+      document.body.appendChild(link);
+      
+      link.click();
+      
+      setTimeout(() => {
+        URL.revokeObjectURL(url);
+        document.body.removeChild(link);
+      }, 100);
+      
+      toast.success(`${fileName} downloaded successfully!`);
+    }
   } catch (error) {
     console.error("Error downloading image:", error);
     
-    // Fallback method using direct data URL
     try {
-      const link = document.createElement("a");
-      link.download = fileName;
+      // Ultra simple fallback method
+      const link = document.createElement('a');
       link.href = dataUrl;
+      link.download = fileName;
       link.target = "_blank";
-      document.body.appendChild(link);
       link.click();
-      document.body.removeChild(link);
-      toast.success(`${fileName} downloaded using fallback method!`);
+      toast.success(`${fileName} downloaded using alternative method`);
     } catch (fallbackError) {
-      // Last resort: open in new window
-      try {
-        const newWindow = window.open();
-        if (newWindow) {
-          newWindow.document.write(`<img src="${dataUrl}" alt="Generated Image" style="max-width:100%;">`);
-          newWindow.document.title = fileName;
-          newWindow.document.close();
-          toast.success(`Image opened in new tab. Right-click to save.`);
-        } else {
-          toast.error("Failed to open image. Please check popup blocker settings.");
-        }
-      } catch (finalError) {
-        console.error("All download attempts failed:", finalError);
-        toast.error("Failed to download. Please right-click the preview and use 'Save As'.");
-      }
+      toast.error("Download failed. Please try taking a screenshot instead.");
+      console.error("All download attempts failed:", fallbackError);
     }
-  }
-};
-
-/**
- * Convert a data URL to a Blob with improved browser compatibility
- */
-const dataURLtoBlob = (dataURL: string): Blob => {
-  try {
-    // Standard method
-    const parts = dataURL.split(';base64,');
-    const contentType = parts[0].split(':')[1];
-    const raw = window.atob(parts[1]);
-    const rawLength = raw.length;
-    const uInt8Array = new Uint8Array(rawLength);
-
-    for (let i = 0; i < rawLength; ++i) {
-      uInt8Array[i] = raw.charCodeAt(i);
-    }
-
-    return new Blob([uInt8Array], { type: contentType });
-  } catch (error) {
-    console.error("Error creating blob from data URL:", error);
-    
-    // Fallback for older browsers
-    const byteString = atob(dataURL.split(',')[1]);
-    const mimeString = dataURL.split(',')[0].split(':')[1].split(';')[0];
-    const ab = new ArrayBuffer(byteString.length);
-    const ia = new Uint8Array(ab);
-    
-    for (let i = 0; i < byteString.length; i++) {
-      ia[i] = byteString.charCodeAt(i);
-    }
-    
-    return new Blob([ab], { type: mimeString });
   }
 };
 
@@ -211,6 +266,6 @@ const dataURLtoBlob = (dataURL: string): Blob => {
  */
 export const useImageFormat = () => {
   const isMobile = useIsMobile();
-  // Use JPG for mobile (smaller file size), PNG for desktop (better quality)
-  return isMobile ? 'jpg' as const : 'jpg' as const;
+  // We'll always use JPG as requested by the user
+  return 'jpg' as const;
 };

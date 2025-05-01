@@ -2,7 +2,7 @@
 import React, { useRef, useState, useEffect } from "react";
 import { Team, Day, Match, ThemeOption, CustomizationOptions } from "@/types";
 import { Button } from "@/components/ui/button";
-import { Download, Share2, Image, Smartphone, AlertCircle } from "lucide-react";
+import { Download, Share2, Image, Smartphone, AlertCircle, Camera } from "lucide-react";
 import { toast } from "sonner";
 import { exportElementAsImage, downloadDataUrl, useImageFormat } from "@/utils/imageExport";
 import { Badge } from "@/components/ui/badge";
@@ -10,6 +10,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import DesktopResultBanner from "./DesktopResultBanner";
 import MobileResultBanner from "./MobileResultBanner";
 import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface ResultExportProps {
   tournament: string;
@@ -38,6 +39,7 @@ const ResultExport: React.FC<ResultExportProps> = ({
   const [viewMode, setViewMode] = useState<"desktop" | "mobile">("desktop");
   const isMobile = useIsMobile();
   const imageFormat = useImageFormat();
+  const [canvasSupported, setCanvasSupported] = useState<boolean>(true);
 
   // Get day title
   const dayTitle = selectedDay === "all" 
@@ -55,8 +57,9 @@ const ResultExport: React.FC<ResultExportProps> = ({
     ? matches[0]?.name || "MATCH RESULTS"
     : dayTitle;
 
-  // Detect browser and device information
+  // Detect browser and device information and check canvas support
   useEffect(() => {
+    // Check browser
     const userAgent = navigator.userAgent;
     let browserName = "Unknown";
     
@@ -73,6 +76,19 @@ const ResultExport: React.FC<ResultExportProps> = ({
     }
     
     setBrowserInfo(browserName);
+    
+    // Check canvas support
+    try {
+      const canvas = document.createElement('canvas');
+      const isSupported = !!(canvas.getContext && canvas.getContext('2d'));
+      setCanvasSupported(isSupported);
+      
+      // Clean up
+      canvas.remove();
+    } catch (e) {
+      console.error("Canvas check failed:", e);
+      setCanvasSupported(false);
+    }
     
     // Set initial view mode based on device
     setViewMode(isMobile ? "mobile" : "desktop");
@@ -99,12 +115,18 @@ const ResultExport: React.FC<ResultExportProps> = ({
       // Set browser-specific options
       const exportOptions = {
         backgroundColor: "#000000",
-        quality: 0.9,
+        quality: 0.95,
         pixelRatio: 2,
         skipAutoScale: false,
         cacheBust: true,
         width: cardRef.current.offsetWidth,
-        height: cardRef.current.offsetHeight
+        height: cardRef.current.offsetHeight,
+        style: {
+          transform: 'scale(1)',
+          transformOrigin: 'top left',
+          width: `${cardRef.current.offsetWidth}px`,
+          height: `${cardRef.current.offsetHeight}px`,
+        },
       };
       
       const dataUrl = await exportElementAsImage(cardRef.current, fileName, exportOptions, imageFormat);
@@ -114,7 +136,7 @@ const ResultExport: React.FC<ResultExportProps> = ({
         toast.success("Image generated successfully!");
         return dataUrl;
       } else {
-        setErrorMessage("Image generation failed. Try using a different browser.");
+        setErrorMessage("Image generation failed. Try taking a screenshot instead.");
         toast.error("Failed to generate image");
         return null;
       }
@@ -134,21 +156,52 @@ const ResultExport: React.FC<ResultExportProps> = ({
     try {
       // Always generate a fresh image for download to ensure latest data
       toast.info("Preparing download...");
-      const dataUrl = await generateImage();
+      
+      // Try direct download first
+      let dataUrl = imageDataUrl;
+      
+      // If we don't have a cached image or it's a fresh request, generate a new one
+      if (!dataUrl) {
+        dataUrl = await generateImage();
+      }
       
       if (dataUrl) {
         const fileName = `${tournament}-${matchTitle.replace(/\s+/g, "-").toLowerCase()}.${imageFormat}`;
         downloadDataUrl(dataUrl, fileName);
       } else {
         toast.error("Failed to generate image for download");
-        setErrorMessage("Download failed. Please try the screenshot method below.");
+        setErrorMessage("Could not create image. Please try the screenshot option below.");
       }
     } catch (error) {
       console.error("Error downloading image:", error);
-      setErrorMessage("Download failed. Please try the screenshot method below.");
+      setErrorMessage("Download failed. Please use the screenshot method below.");
       toast.error("Download failed");
     } finally {
       setIsGenerating(false);
+    }
+  };
+  
+  // Function to take screenshot
+  const takeScreenshot = () => {
+    setErrorMessage(null);
+    toast.info("Please capture your screen using your device's screenshot function:");
+    
+    // Show instructions based on device/OS
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+    const isAndroid = /Android/.test(navigator.userAgent);
+    const isMacOS = /Mac/.test(navigator.userAgent) && !isIOS;
+    const isWindows = /Windows/.test(navigator.userAgent);
+    
+    if (isIOS) {
+      toast.info("iOS: Press Side button + Volume Up buttons together", { duration: 8000 });
+    } else if (isAndroid) {
+      toast.info("Android: Press Power + Volume Down buttons together", { duration: 8000 });
+    } else if (isMacOS) {
+      toast.info("Mac: Press Command (⌘) + Shift + 4, then Space to capture a window", { duration: 8000 });
+    } else if (isWindows) {
+      toast.info("Windows: Press Windows + Shift + S to open the snipping tool", { duration: 8000 });
+    } else {
+      toast.info("Press your device's screenshot shortcut to capture this screen", { duration: 8000 });
     }
   };
 
@@ -157,7 +210,11 @@ const ResultExport: React.FC<ResultExportProps> = ({
     setIsGenerating(true);
     try {
       // Always generate a fresh image for sharing to ensure latest data
-      const dataUrl = await generateImage();
+      let dataUrl = imageDataUrl;
+      
+      if (!dataUrl) {
+        dataUrl = await generateImage();
+      }
       
       if (!dataUrl) {
         return;
@@ -196,7 +253,7 @@ const ResultExport: React.FC<ResultExportProps> = ({
         // Fallback to text copying
         try {
           await navigator.clipboard.writeText(dataUrl);
-          toast.success("Image URL copied!");
+          toast.success("Image URL copied to clipboard!");
         } catch (textErr) {
           // Last resort: trigger download
           const fileName = `${tournament}-${matchTitle.replace(/\s+/g, "-").toLowerCase()}.${imageFormat}`;
@@ -206,6 +263,7 @@ const ResultExport: React.FC<ResultExportProps> = ({
     } catch (error) {
       console.error("Error sharing image:", error);
       toast.error("Failed to share image");
+      setErrorMessage("Sharing failed. Please use the screenshot method.");
     } finally {
       setIsGenerating(false);
     }
@@ -214,6 +272,8 @@ const ResultExport: React.FC<ResultExportProps> = ({
   // Toggle between desktop and mobile view
   const toggleViewMode = () => {
     setViewMode(prev => prev === "desktop" ? "mobile" : "desktop");
+    // Clear cached image when switching view modes
+    setImageDataUrl(null);
   };
 
   return (
@@ -250,80 +310,82 @@ const ResultExport: React.FC<ResultExportProps> = ({
         )}
       </div>
 
-      {/* Action buttons - Simplified and more professional UI */}
+      {/* Action buttons - Improved UI with better mobile support */}
       <div className="flex flex-wrap gap-2 justify-center mt-6">
         <Button 
           onClick={downloadImage} 
-          className="bg-gradient-to-r from-rose-600 to-pink-600 hover:from-rose-700 hover:to-pink-700 flex items-center gap-2 px-6"
+          className="bg-gradient-to-r from-rose-600 to-pink-600 hover:from-rose-700 hover:to-pink-700 flex items-center gap-2 px-6 w-full sm:w-auto"
           disabled={isGenerating}
           size="lg"
         >
           <Download className="w-5 h-5" />
-          {isGenerating ? "Generating..." : `Download as ${imageFormat.toUpperCase()}`}
+          {isGenerating ? "Processing..." : `Download as JPG`}
         </Button>
         
         <Button 
           onClick={shareImage}
           variant="outline"
           disabled={isGenerating}
-          className="flex items-center gap-2"
+          className="flex items-center gap-2 w-full sm:w-auto"
           size="lg"
         >
           <Share2 className="w-5 h-5" />
-          Share
+          Share / Copy
         </Button>
         
         <Button
-          onClick={generateImage}
+          onClick={takeScreenshot}
           variant="secondary"
-          disabled={isGenerating}
-          className="flex items-center gap-2"
+          className="flex items-center gap-2 w-full sm:w-auto"
           size="lg"
         >
-          <Image className="w-5 h-5" />
-          Preview
+          <Camera className="w-5 h-5" />
+          Screenshot Help
         </Button>
       </div>
       
-      {/* Error message display */}
-      {errorMessage && (
-        <div className="mt-4">
-          <Badge variant="error" className="text-sm py-1.5 px-3 flex items-center gap-1.5">
-            <AlertCircle className="h-4 w-4" />
-            {errorMessage}
-          </Badge>
+      {/* Browser compatibility notice */}
+      {browserInfo && (
+        <div className="text-center text-xs text-muted-foreground mt-2">
+          Using {browserInfo} browser | Format: JPG | View: {viewMode}
         </div>
       )}
+      
+      {/* Error message display with improved styling */}
+      {errorMessage && (
+        <Alert variant="destructive" className="mt-4">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription className="ml-2">
+            {errorMessage}
+          </AlertDescription>
+        </Alert>
+      )}
+      
+      {/* Help message for users experiencing issues */}
+      <div className="mt-4 text-center">
+        <Badge variant="outline" className="text-xs py-1.5 px-3 flex items-center justify-center gap-1.5 mx-auto">
+          <AlertCircle className="h-3 w-3" />
+          Having trouble? Use the Screenshot Help button for an alternative method
+        </Badge>
+      </div>
       
       {/* Preview image if available */}
       {imageDataUrl && (
         <div className="mt-6 border rounded-lg overflow-hidden">
-          <Table>
-            <TableCaption>Right-click on the image to save it manually</TableCaption>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Preview</TableHead>
-                <TableHead>Format</TableHead>
-                <TableHead>View Mode</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              <TableRow>
-                <TableCell>
-                  <div className="flex justify-center">
-                    <img 
-                      src={imageDataUrl} 
-                      alt="Generated Preview" 
-                      className="max-w-full h-auto rounded-md shadow-md"
-                      style={{ maxHeight: "500px" }}
-                    />
-                  </div>
-                </TableCell>
-                <TableCell>{imageFormat.toUpperCase()}</TableCell>
-                <TableCell>{viewMode === "desktop" ? "Desktop Banner" : "Mobile Banner"}</TableCell>
-              </TableRow>
-            </TableBody>
-          </Table>
+          <div className="bg-card p-4">
+            <h3 className="text-lg font-medium mb-2">Generated Preview</h3>
+            <div className="flex justify-center">
+              <img 
+                src={imageDataUrl} 
+                alt="Generated Preview" 
+                className="max-w-full h-auto rounded-md shadow-md"
+                style={{ maxHeight: "500px" }}
+              />
+            </div>
+            <div className="text-center mt-4 text-sm text-muted-foreground">
+              Right-click on the image to save it manually if the download button doesn't work
+            </div>
+          </div>
         </div>
       )}
     </div>

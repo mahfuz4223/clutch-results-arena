@@ -8,7 +8,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { ChevronLeft } from "lucide-react";
 import ResultExport from "@/components/export/ResultExport";
-import CustomizationPanel from "@/components/export/CustomizationPanel";
 import { getThemeById } from "@/utils/themes";
 import { CustomizationOptions } from "@/types";
 
