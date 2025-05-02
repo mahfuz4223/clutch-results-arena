@@ -1,6 +1,5 @@
 
-import { useState, useRef, useEffect } from "react";
-import { useIsMobile } from "@/hooks/use-mobile";
+import { useState, useRef } from "react";
 import { Day } from "@/types";
 
 export const useResultExport = (
@@ -14,8 +13,7 @@ export const useResultExport = (
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
   const [imageDataUrl, setImageDataUrl] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [viewMode, setViewMode] = useState<"desktop" | "mobile">("desktop");
-  const isMobile = useIsMobile();
+  const viewMode = "desktop"; // Fixed to desktop only
 
   // Get day title
   const dayTitle = selectedDay === "all" 
@@ -33,18 +31,6 @@ export const useResultExport = (
     ? matches[0]?.name || "MATCH RESULTS"
     : dayTitle;
 
-  // Toggle between desktop and mobile view
-  const toggleViewMode = () => {
-    setViewMode(prev => prev === "desktop" ? "mobile" : "desktop");
-    // Clear cached image when switching view modes
-    setImageDataUrl(null);
-  };
-
-  // Set initial view mode based on device
-  useEffect(() => {
-    setViewMode(isMobile ? "mobile" : "desktop");
-  }, [isMobile]);
-
   return {
     cardRef,
     isGenerating,
@@ -54,7 +40,6 @@ export const useResultExport = (
     errorMessage,
     setErrorMessage,
     viewMode,
-    toggleViewMode,
     matches,
     matchTitle,
   };

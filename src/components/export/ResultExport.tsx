@@ -2,9 +2,7 @@
 import React from "react";
 import { Team, Day, CustomizationOptions } from "@/types";
 import DesktopResultBanner from "./DesktopResultBanner";
-import MobileResultBanner from "./MobileResultBanner";
 import ActionButtons from "./components/ActionButtons";
-import ViewToggle from "./components/ViewToggle";
 import ImagePreview from "./components/ImagePreview";
 import { useResultExport } from "./hooks/useResultExport";
 
@@ -38,7 +36,6 @@ const ResultExport: React.FC<ResultExportProps> = ({
     errorMessage,
     setErrorMessage,
     viewMode,
-    toggleViewMode,
     matches,
     matchTitle
   } = useResultExport(tournament, days, selectedDay, format, selectedMatch);
@@ -47,36 +44,6 @@ const ResultExport: React.FC<ResultExportProps> = ({
     return (
       <div className="p-2 scale-50 origin-top">
         <div ref={cardRef}>
-          {viewMode === "desktop" ? (
-            <DesktopResultBanner
-              tournament={tournament}
-              teams={teams}
-              matches={matches}
-              title={matchTitle}
-              customization={customization}
-            />
-          ) : (
-            <MobileResultBanner
-              tournament={tournament}
-              teams={teams}
-              matches={matches}
-              title={matchTitle}
-              customization={customization}
-            />
-          )}
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="space-y-6">
-      {/* View mode toggle */}
-      <ViewToggle viewMode={viewMode} toggleViewMode={toggleViewMode} />
-      
-      {/* Banner */}
-      <div ref={cardRef} className="flex justify-center">
-        {viewMode === "desktop" ? (
           <DesktopResultBanner
             tournament={tournament}
             teams={teams}
@@ -84,15 +51,22 @@ const ResultExport: React.FC<ResultExportProps> = ({
             title={matchTitle}
             customization={customization}
           />
-        ) : (
-          <MobileResultBanner
-            tournament={tournament}
-            teams={teams}
-            matches={matches}
-            title={matchTitle}
-            customization={customization}
-          />
-        )}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Banner */}
+      <div ref={cardRef} className="flex justify-center">
+        <DesktopResultBanner
+          tournament={tournament}
+          teams={teams}
+          matches={matches}
+          title={matchTitle}
+          customization={customization}
+        />
       </div>
 
       {/* Action buttons and error message */}
