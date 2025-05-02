@@ -58,8 +58,8 @@ const ResultExport: React.FC<ResultExportProps> = ({
     setViewMode(isMobile ? "mobile" : "desktop");
   }, [isMobile]);
 
-  // Direct canvas-based image generation and download
-  const handleCanvasDownload = async () => {
+  // Generate and download image
+  const handleDownload = async () => {
     setIsGenerating(true);
     setErrorMessage(null);
     
@@ -70,89 +70,42 @@ const ResultExport: React.FC<ResultExportProps> = ({
         return;
       }
       
-      // Wait for any state updates to complete
-      await new Promise(resolve => setTimeout(resolve, 100));
+      toast.info("Generating image for download...");
       
-      // Directly create a canvas and draw the banner
-      const canvas = document.createElement('canvas');
-      const rect = banner.getBoundingClientRect();
-      const scale = 2; // Higher quality
+      // Use the improved exportElementAsImage function
+      const dataUrl = await exportElementAsImage(
+        banner,
+        `${tournament}-${matchTitle}.jpg`,
+        { quality: 0.9, pixelRatio: 2 },
+        'jpg'
+      );
       
-      canvas.width = rect.width * scale;
-      canvas.height = rect.height * scale;
-      
-      const ctx = canvas.getContext('2d');
-      if (!ctx) {
-        throw new Error('Could not get canvas context');
+      if (dataUrl) {
+        setImageDataUrl(dataUrl);
+        const fileName = `${tournament}-${matchTitle.replace(/\s+/g, "-").toLowerCase()}.jpg`;
+        downloadDataUrl(dataUrl, fileName);
+      } else {
+        setErrorMessage("Could not generate image. Please try the screenshot method below.");
       }
-      
-      // Scale for better quality
-      ctx.scale(scale, scale);
-      
-      // Set background
-      ctx.fillStyle = '#000000';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-      
-      // Use html2canvas-like approach
-      const data = new XMLSerializer().serializeToString(banner);
-      const img = new Image();
-      const svgBlob = new Blob([data], {type: 'image/svg+xml'});
-      
-      // Fix: Use URL directly instead of window.URL || window.webkitURL || window
-      const url = URL.createObjectURL(svgBlob);
-      
-      // Create image from SVG
-      toast.info("Preparing image for download...");
-      
-      // Wait for image to load
-      await new Promise((resolve, reject) => {
-        img.onload = resolve;
-        img.onerror = reject;
-        img.src = url;
-      });
-      
-      // Draw image to canvas
-      ctx.drawImage(img, 0, 0, rect.width, rect.height);
-      // Fix: Use URL directly for revoking
-      URL.revokeObjectURL(url);
-      
-      // Get data URL and download
-      const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
-      setImageDataUrl(dataUrl);
-      
-      const fileName = `${tournament}-${matchTitle.replace(/\s+/g, "-").toLowerCase()}.jpg`;
-      
-      // Use browser's built-in download capability
-      const link = document.createElement('a');
-      link.href = dataUrl;
-      link.download = fileName;
-      document.body.appendChild(link);
-      link.click();
-      
-      setTimeout(() => {
-        document.body.removeChild(link);
-        toast.success(`${fileName} downloaded!`);
-      }, 100);
     } catch (error) {
       console.error("Download error:", error);
-      setErrorMessage(`Could not download image. Please use the screenshot method.`);
-      toast.error("Download failed. Try using the screenshot help option.");
-      takeScreenshot(); // Automatically show screenshot instructions
+      setErrorMessage("Download failed. Please use the screenshot method below.");
     } finally {
       setIsGenerating(false);
     }
   };
 
-  // Share function (simplified)
+  // Share function
   const handleShare = async () => {
-    if (!imageDataUrl) {
-      // Generate image first
-      try {
+    try {
+      let dataUrl = imageDataUrl;
+      
+      if (!dataUrl) {
         setIsGenerating(true);
         const banner = cardRef.current;
         if (!banner) return;
         
-        const dataUrl = await exportElementAsImage(
+        dataUrl = await exportElementAsImage(
           banner,
           "share-image.jpg",
           { quality: 0.9, pixelRatio: 2 },
@@ -160,70 +113,41 @@ const ResultExport: React.FC<ResultExportProps> = ({
         );
         
         setImageDataUrl(dataUrl);
-        
-        if (dataUrl && navigator.share) {
-          // Modern share API (mobile)
-          try {
-            const blob = await fetch(dataUrl).then(r => r.blob());
-            const file = new File([blob], "tournament-results.jpg", { type: 'image/jpeg' });
-            
-            await navigator.share({
-              files: [file],
-              title: `${tournament} Results`,
-              text: `Check out the latest standings for ${tournament}!`
-            });
-            toast.success("Shared successfully!");
-            return;
-          } catch (e) {
-            console.log("Share API failed, falling back");
-          }
-        }
-        
-        // Fallback: copy to clipboard
-        if (dataUrl) {
-          try {
-            // Copy to clipboard
-            const imgElem = document.createElement('img');
-            imgElem.src = dataUrl;
-            document.body.appendChild(imgElem);
-            
-            // Select the image
-            const range = document.createRange();
-            range.selectNode(imgElem);
-            window.getSelection()?.removeAllRanges();
-            window.getSelection()?.addRange(range);
-            
-            // Copy
-            const success = document.execCommand('copy');
-            window.getSelection()?.removeAllRanges();
-            document.body.removeChild(imgElem);
-            
-            if (success) {
-              toast.success("Image copied to clipboard!");
-            } else {
-              toast.info("Please use the download button instead");
-            }
-          } catch (clipErr) {
-            toast.info("Please use the download button instead");
-          }
-        }
-      } catch (error) {
-        console.error("Share error:", error);
-        toast.error("Sharing failed. Please try downloading instead.");
-      } finally {
         setIsGenerating(false);
       }
-    } else {
-      // Image already generated, try to share it
-      try {
-        // Try clipboard API
-        const blob = await fetch(imageDataUrl).then(r => r.blob());
-        const data = [new ClipboardItem({ [blob.type]: blob })];
-        await navigator.clipboard.write(data);
-        toast.success("Image copied to clipboard!");
-      } catch (e) {
-        toast.info("Please use the download option instead");
+      
+      if (dataUrl && navigator.share) {
+        // Modern share API (mobile)
+        try {
+          const blob = await fetch(dataUrl).then(r => r.blob());
+          const file = new File([blob], "tournament-results.jpg", { type: 'image/jpeg' });
+          
+          await navigator.share({
+            files: [file],
+            title: `${tournament} Results`,
+            text: `Check out the latest standings for ${tournament}!`
+          });
+          toast.success("Shared successfully!");
+          return;
+        } catch (e) {
+          console.log("Share API failed, falling back");
+        }
       }
+      
+      // Fallback: copy to clipboard
+      if (dataUrl) {
+        try {
+          const blob = await fetch(dataUrl).then(r => r.blob());
+          const clipboardItem = new ClipboardItem({ [blob.type]: blob });
+          await navigator.clipboard.write([clipboardItem]);
+          toast.success("Image copied to clipboard!");
+        } catch (clipErr) {
+          toast.info("Please use the download button instead");
+        }
+      }
+    } catch (error) {
+      console.error("Share error:", error);
+      toast.error("Sharing failed. Please try downloading instead.");
     }
   };
   
@@ -338,7 +262,7 @@ const ResultExport: React.FC<ResultExportProps> = ({
       {/* Action buttons */}
       <div className="flex flex-wrap gap-3 justify-center mt-8">
         <Button 
-          onClick={handleCanvasDownload} 
+          onClick={handleDownload}
           className="bg-gradient-to-r from-rose-600 to-pink-600 hover:from-rose-700 hover:to-pink-700 flex items-center gap-2 px-6 w-full sm:w-auto"
           disabled={isGenerating}
           size="lg"
