@@ -1,3 +1,4 @@
+
 export interface Team {
   id: string;
   name: string;
@@ -69,4 +70,43 @@ export interface CustomizationOptions {
   footerText?: string;
   logoUrl?: string;
   customBackgroundUrl?: string;
+}
+
+export interface BannerTheme {
+  id: string;
+  name: string;
+  colors: {
+    primary: string;
+    secondary: string;
+    accent: string;
+    background: string;
+  };
+  properties: {
+    showGrid: boolean;
+    showCharacter: boolean;
+    useGradient: boolean;
+  };
+  preview?: string;
+}
+
+export interface BannerThemeConfig {
+  containerClasses: string;
+  containerStyle: object;
+  titleClasses: string;
+  mainTitleClasses: string;
+  subtitleClasses: string;
+  dividerClasses: string;
+  tableClasses: string;
+  tableHeaderClasses: string;
+  placeLabel: string;
+  killsLabel: string;
+  rankClasses: string;
+  pointsClasses: string;
+  footerClasses: string;
+  showDivider: boolean;
+  showGrid: boolean;
+  showCharacter: boolean;
+  titlePrefix?: string;
+  backgroundImage?: string;
+  getRowClasses: (index: number) => string;
 }
