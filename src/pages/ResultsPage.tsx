@@ -120,12 +120,12 @@ const ResultsPage = () => {
                 {selectedDay !== "all" && (
                   <div className="flex items-center space-x-4">
                     <div className="font-medium">Match:</div>
-                    <Select value={selectedMatch || ""} onValueChange={setSelectedMatch}>
+                    <Select value={selectedMatch || "all_matches"} onValueChange={setSelectedMatch}>
                       <SelectTrigger className="w-40">
                         <SelectValue placeholder="All Matches" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">All Matches</SelectItem>
+                        <SelectItem value="all_matches">All Matches</SelectItem>
                         {matchesForDay.map(match => (
                           <SelectItem key={match.id} value={match.id}>
                             {match.name}

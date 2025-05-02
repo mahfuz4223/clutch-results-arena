@@ -21,6 +21,7 @@ import ExportPage from "./pages/ExportPage";
 import AuthPage from "./pages/AuthPage";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 
+// Ensure React is properly initialized before rendering the app
 const App = () => {
   // Create a new QueryClient instance with updated configurations
   const [queryClient] = useState(() => new QueryClient({
