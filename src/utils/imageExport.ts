@@ -47,6 +47,7 @@ export const exportElementAsImage = async (
       // Convert DOM to SVG
       const data = new XMLSerializer().serializeToString(element);
       const svgBlob = new Blob([data], { type: 'image/svg+xml' });
+      // Use URL directly instead of creating a dynamic variable
       const url = URL.createObjectURL(svgBlob);
       
       // Draw the SVG on canvas

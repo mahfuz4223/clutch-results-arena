@@ -95,10 +95,11 @@ const ResultExport: React.FC<ResultExportProps> = ({
       
       // Use html2canvas-like approach
       const data = new XMLSerializer().serializeToString(banner);
-      const DOMURL = window.URL || window.webkitURL || window;
       const img = new Image();
       const svgBlob = new Blob([data], {type: 'image/svg+xml'});
-      const url = DOMURL.createObjectURL(svgBlob);
+      
+      // Fix: Use URL directly instead of window.URL || window.webkitURL || window
+      const url = URL.createObjectURL(svgBlob);
       
       // Create image from SVG
       toast.info("Preparing image for download...");
@@ -112,7 +113,8 @@ const ResultExport: React.FC<ResultExportProps> = ({
       
       // Draw image to canvas
       ctx.drawImage(img, 0, 0, rect.width, rect.height);
-      DOMURL.revokeObjectURL(url);
+      // Fix: Use URL directly for revoking
+      URL.revokeObjectURL(url);
       
       // Get data URL and download
       const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
