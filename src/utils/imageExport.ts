@@ -101,3 +101,53 @@ export const useImageFormat = () => {
   // Always use JPG as requested
   return 'jpg' as const;
 };
+
+/**
+ * Convert a base64 string to a Blob object
+ */
+export const dataURLtoBlob = (dataURL: string): Blob => {
+  const parts = dataURL.split(';base64,');
+  const contentType = parts[0].split(':')[1];
+  const raw = window.atob(parts[1]);
+  const rawLength = raw.length;
+  const uInt8Array = new Uint8Array(rawLength);
+  
+  for (let i = 0; i < rawLength; ++i) {
+    uInt8Array[i] = raw.charCodeAt(i);
+  }
+  
+  return new Blob([uInt8Array], { type: contentType });
+};
+
+/**
+ * Share image via Web Share API or clipboard API
+ */
+export const shareImage = async (imageUrl: string, title: string): Promise<boolean> => {
+  try {
+    // Try Web Share API first
+    if (navigator.share) {
+      const blob = await fetch(imageUrl).then(r => r.blob());
+      const file = new File([blob], "tournament-results.jpg", { type: 'image/jpeg' });
+      
+      await navigator.share({
+        files: [file],
+        title: title,
+        text: `Check out the latest standings for ${title}!`
+      });
+      
+      return true;
+    } 
+    
+    // Fallback to clipboard
+    const blob = await fetch(imageUrl).then(r => r.blob());
+    await navigator.clipboard.write([
+      new ClipboardItem({ [blob.type]: blob })
+    ]);
+    
+    toast.success("Copied to clipboard!");
+    return true;
+  } catch (error) {
+    console.error("Share error:", error);
+    return false;
+  }
+};

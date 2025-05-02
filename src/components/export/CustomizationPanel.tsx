@@ -10,6 +10,11 @@ import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { THEME_OPTIONS, BACKGROUND_OPTIONS, CSS_PRESETS } from "@/utils/themes";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Upload, Image, Palette } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel } from "@/components/ui/form";
+import { toast } from "sonner";
 
 interface CustomizationPanelProps {
   options: CustomizationOptions;
@@ -20,16 +25,74 @@ const CustomizationPanel: React.FC<CustomizationPanelProps> = ({
   options,
   onChange
 }) => {
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) { // 5MB limit
+      toast.error("Image too large. Please upload an image smaller than 5MB.");
+      return;
+    }
+
+    try {
+      const reader = new FileReader();
+      reader.onload = () => {
+        if (typeof reader.result === 'string') {
+          onChange({ logoUrl: reader.result });
+          toast.success("Logo uploaded successfully!");
+        }
+      };
+      reader.readAsDataURL(file);
+    } catch (error) {
+      console.error("Error uploading image:", error);
+      toast.error("Failed to upload image. Please try again.");
+    }
+  };
+
+  const handleBackgroundUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) { // 5MB limit
+      toast.error("Image too large. Please upload an image smaller than 5MB.");
+      return;
+    }
+
+    try {
+      const reader = new FileReader();
+      reader.onload = () => {
+        if (typeof reader.result === 'string') {
+          // Set custom background
+          onChange({ 
+            background: "custom",
+            customBackgroundUrl: reader.result 
+          });
+          toast.success("Background uploaded successfully!");
+        }
+      };
+      reader.readAsDataURL(file);
+    } catch (error) {
+      console.error("Error uploading background:", error);
+      toast.error("Failed to upload background. Please try again.");
+    }
+  };
+
   return (
     <Card className="lg:col-span-1">
       <CardHeader>
-        <CardTitle>Export Options</CardTitle>
+        <CardTitle className="flex items-center gap-2">
+          <Palette className="h-5 w-5" />
+          Customization Options
+        </CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
         <Tabs defaultValue="basic">
           <TabsList className="w-full mb-4">
             <TabsTrigger value="basic">Basic</TabsTrigger>
             <TabsTrigger value="appearance">Appearance</TabsTrigger>
+            <TabsTrigger value="branding">Branding</TabsTrigger>
             <TabsTrigger value="advanced">Advanced</TabsTrigger>
           </TabsList>
           
@@ -102,8 +165,42 @@ const CustomizationPanel: React.FC<CustomizationPanelProps> = ({
                       {bg.name}
                     </SelectItem>
                   ))}
+                  <SelectItem value="custom">Custom Background</SelectItem>
                 </SelectContent>
               </Select>
+              
+              {options.background === "custom" && (
+                <div className="pt-2">
+                  <div className="flex items-center gap-2">
+                    <Button 
+                      type="button" 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => document.getElementById('background-upload')?.click()}
+                      className="w-full flex items-center gap-2"
+                    >
+                      <Upload className="h-4 w-4" />
+                      Upload Background Image
+                    </Button>
+                    <input
+                      id="background-upload"
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={handleBackgroundUpload}
+                    />
+                  </div>
+                  {options.customBackgroundUrl && (
+                    <div className="mt-2">
+                      <img 
+                        src={options.customBackgroundUrl} 
+                        alt="Custom background" 
+                        className="h-20 w-full object-cover rounded-md border" 
+                      />
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </TabsContent>
           
@@ -155,6 +252,58 @@ const CustomizationPanel: React.FC<CustomizationPanelProps> = ({
                   onCheckedChange={(checked) => onChange({ showSponsors: checked })}
                 />
               </div>
+            </div>
+          </TabsContent>
+          
+          <TabsContent value="branding" className="space-y-6">
+            <div className="space-y-3">
+              <Label>Footer Text</Label>
+              <Input 
+                value={options.footerText || "© 2025 TournaNext"} 
+                onChange={(e) => onChange({ footerText: e.target.value })}
+                placeholder="© 2025 Your Tournament Name"
+              />
+            </div>
+            
+            <div className="space-y-3">
+              <Label>Custom Logo</Label>
+              <div className="flex items-center gap-2">
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  onClick={() => document.getElementById('logo-upload')?.click()}
+                  className="w-full flex items-center gap-2"
+                >
+                  <Image className="h-4 w-4" />
+                  Upload Logo
+                </Button>
+                <input
+                  id="logo-upload"
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleImageUpload}
+                  ref={fileInputRef}
+                />
+              </div>
+              
+              {options.logoUrl && (
+                <div className="mt-2 p-2 border rounded-md">
+                  <img 
+                    src={options.logoUrl} 
+                    alt="Custom logo" 
+                    className="h-12 mx-auto object-contain" 
+                  />
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="w-full mt-2 text-xs"
+                    onClick={() => onChange({ logoUrl: "" })}
+                  >
+                    Remove Logo
+                  </Button>
+                </div>
+              )}
             </div>
           </TabsContent>
           

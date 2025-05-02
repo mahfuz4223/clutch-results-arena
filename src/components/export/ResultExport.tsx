@@ -1,4 +1,3 @@
-
 import React, { useRef, useState } from "react";
 import { Team, Day, CustomizationOptions } from "@/types";
 import { Button } from "@/components/ui/button";
@@ -19,6 +18,7 @@ interface ResultExportProps {
   format?: "day" | "match";
   selectedMatch?: string;
   customization: CustomizationOptions;
+  previewMode?: boolean;
 }
 
 const ResultExport: React.FC<ResultExportProps> = ({
@@ -28,7 +28,8 @@ const ResultExport: React.FC<ResultExportProps> = ({
   selectedDay = "all",
   format = "day",
   selectedMatch,
-  customization
+  customization,
+  previewMode = false
 }) => {
   const cardRef = useRef<HTMLDivElement>(null);
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
@@ -57,6 +58,32 @@ const ResultExport: React.FC<ResultExportProps> = ({
   React.useEffect(() => {
     setViewMode(isMobile ? "mobile" : "desktop");
   }, [isMobile]);
+
+  if (previewMode) {
+    return (
+      <div className="p-2 scale-50 origin-top">
+        <div ref={cardRef}>
+          {viewMode === "desktop" ? (
+            <DesktopResultBanner
+              tournament={tournament}
+              teams={teams}
+              matches={matches}
+              title={matchTitle}
+              customization={customization}
+            />
+          ) : (
+            <MobileResultBanner
+              tournament={tournament}
+              teams={teams}
+              matches={matches}
+              title={matchTitle}
+              customization={customization}
+            />
+          )}
+        </div>
+      </div>
+    );
+  }
 
   // Generate and download image
   const handleDownload = async () => {
@@ -248,6 +275,7 @@ const ResultExport: React.FC<ResultExportProps> = ({
             teams={teams}
             matches={matches}
             title={matchTitle}
+            customization={customization}
           />
         ) : (
           <MobileResultBanner
@@ -255,6 +283,7 @@ const ResultExport: React.FC<ResultExportProps> = ({
             teams={teams}
             matches={matches}
             title={matchTitle}
+            customization={customization}
           />
         )}
       </div>

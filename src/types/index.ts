@@ -53,17 +53,20 @@ export interface ThemeOption {
   headerBg: string;
   tableBg: string;
   borderColor: string;
-  preview: string;
+  preview?: string;
 }
 
 export interface CustomizationOptions {
   theme: string;
   background: string;
-  customCss: string;
-  cssPreset: string;
+  cssPreset?: string;
+  customCss?: string;
   showSponsors: boolean;
   showGridLines: boolean;
   showTencentLogo: boolean;
   showPubgLogo: boolean;
   showTournamentLogo: boolean;
+  footerText?: string;
+  logoUrl?: string;
+  customBackgroundUrl?: string;
 }

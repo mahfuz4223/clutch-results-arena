@@ -3,6 +3,8 @@ import React from "react";
 import { Team } from "@/types";
 import { calculateOverallStandings } from "@/utils/pointCalculator";
 import { cn } from "@/lib/utils";
+import { getThemeById, getBackgroundById } from "@/utils/themes";
+import { CustomizationOptions } from "@/types";
 
 interface MobileResultBannerProps {
   tournament: string;
@@ -10,6 +12,7 @@ interface MobileResultBannerProps {
   matches: any[];
   title: string;
   className?: string;
+  customization?: CustomizationOptions;
 }
 
 const MobileResultBanner: React.FC<MobileResultBannerProps> = ({
@@ -18,31 +21,66 @@ const MobileResultBanner: React.FC<MobileResultBannerProps> = ({
   matches,
   title,
   className = "",
+  customization = {
+    theme: "pubg-official",
+    background: "dark-grid",
+    showGridLines: true,
+    showTencentLogo: true,
+    showPubgLogo: true,
+    showTournamentLogo: true,
+    showSponsors: true,
+    footerText: "© 2025 TournaNext",
+  },
 }) => {
   // Calculate standings
   const standings = calculateOverallStandings(teams, matches);
 
+  // Get theme
+  const theme = getThemeById(customization?.theme || "pubg-official");
+  
+  // Get background image or custom background
+  const backgroundUrl = customization?.background === 'custom' 
+    ? customization?.customBackgroundUrl 
+    : getBackgroundById(customization?.background || "dark-grid");
+
+  // Use background color if no image
+  const backgroundStyle = backgroundUrl 
+    ? { backgroundImage: `linear-gradient(to bottom, rgba(0,0,0,0.7), rgba(0,0,0,0.85)), url('${backgroundUrl}')` }
+    : {};
+
   return (
     <div 
-      className={cn("mobile-result-banner w-full overflow-hidden rounded-lg shadow-lg", className)}
+      className={cn("mobile-result-banner w-full overflow-hidden rounded-lg shadow-lg", className, theme.background)}
       style={{
         width: "360px",
-        backgroundImage: "linear-gradient(135deg, #d50270 0%, #ba022a 100%)",
+        ...backgroundStyle,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundBlendMode: 'overlay'
       }}
     >
       {/* Tournament Logo Band */}
       <div className="bg-black/40 p-2 flex items-center justify-between">
         <div className="flex items-center">
-          <img
-            src="/public/lovable-uploads/219a88a1-7c30-4976-9bf2-4b9ffc9ddacf.png"
-            alt="PUBG Mobile Logo"
-            className="h-8 mr-2"
-            crossOrigin="anonymous"
-          />
+          {customization?.logoUrl ? (
+            <img
+              src={customization.logoUrl}
+              alt="Custom Logo"
+              className="h-8 mr-2"
+              crossOrigin="anonymous"
+            />
+          ) : (
+            <img
+              src="/public/lovable-uploads/219a88a1-7c30-4976-9bf2-4b9ffc9ddacf.png"
+              alt="PUBG Mobile Logo"
+              className="h-8 mr-2"
+              crossOrigin="anonymous"
+            />
+          )}
         </div>
         <div className="flex flex-col items-end">
-          <span className="text-xs text-white/80">GRAND FINALS</span>
-          <span className="text-xs text-white/80">12/23/25</span>
+          <span className="text-xs text-white/80">TOURNAMENT</span>
+          <span className="text-xs text-white/80">{tournament}</span>
         </div>
       </div>
 
@@ -127,7 +165,7 @@ const MobileResultBanner: React.FC<MobileResultBannerProps> = ({
 
       {/* Footer */}
       <div className="bg-black/50 p-2 text-center text-xs text-white/80">
-        <span>PUBG MOBILE GLOBAL CHAMPIONSHIP 2025</span>
+        <span>{customization?.footerText || "© 2025 TournaNext"}</span>
       </div>
     </div>
   );
